@@ -18,6 +18,7 @@
 package com.example.signalling2.service;
 
 import com.example.signalling2.domain.UserSession;
+import com.example.signalling2.repository.UserRedisRepository;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -26,10 +27,12 @@ import org.kurento.jsonrpc.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -38,22 +41,29 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Boni Garcia (bgarcia@gsyc.es)
  * @since 5.0.0
  */
+@Service
 public class CallHandler extends TextWebSocketHandler {
 
   private static final Logger log = LoggerFactory.getLogger(CallHandler.class);
   private static final Gson gson = new GsonBuilder().create();
 
-  private final ConcurrentHashMap<String, UserSession> viewers = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, UserSession> viewers = new ConcurrentHashMap<String, UserSession>();
+  private final ConcurrentHashMap<String, UserSession> presenters = new ConcurrentHashMap<String, UserSession>();
+
+  private final KurentoClient kurento;
+
+  private UserRedisRepository userRedisRepository;
+
 
   @Autowired
-  private KurentoClient kurento;
-
-  private MediaPipeline pipeline;
-  private UserSession presenterUserSession;
+  public CallHandler(KurentoClient kurento, UserRedisRepository userRedisRepository) {
+    this.kurento = kurento;
+    this.userRedisRepository = userRedisRepository;
+  }
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-    //System.out.println("session ID: " + session.getId());
+    System.out.println("session ID: " + session.getId());
     session.sendMessage(new TextMessage(session.getId()));
   }
 
@@ -90,9 +100,9 @@ public class CallHandler extends TextWebSocketHandler {
         JsonObject candidate = jsonMessage.get("candidate").getAsJsonObject();
 
         UserSession user = null;
-        if (presenterUserSession != null) {
-          if (presenterUserSession.getSession() == session) {
-            user = presenterUserSession;
+        if (!presenters.isEmpty()) {
+          if (presenters.get(session.getId()) != null && presenters.get(session.getId()).getSession() == session) { // webSocketSession과 session이 같은지 비교
+            user = presenters.get(session.getId());
           } else {
             user = viewers.get(session.getId());
           }
@@ -126,17 +136,23 @@ public class CallHandler extends TextWebSocketHandler {
 
   private synchronized void presenter(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
-    if (presenterUserSession == null) {
-      presenterUserSession = new UserSession(session);
+    if (presenters.get(session.getId()) == null) {
 
-      // presenter
-      pipeline = kurento.createMediaPipeline();
-      System.out.println("present pipeline: " + pipeline);
-      presenterUserSession.setWebRtcEndpoint(new WebRtcEndpoint.Builder(pipeline).build());
-      WebRtcEndpoint presenterWebRtc = presenterUserSession.getWebRtcEndpoint();
-      System.out.println("WebRtcEndpoint: " + presenterWebRtc);
+      // presenter setting
 
-      // 이부분에서 presenter와 파이프라인이 연결됨
+      // 1. Media logic (webRtcEndpoint in loopback)
+      MediaPipeline pipeline = kurento.createMediaPipeline();
+      WebRtcEndpoint presenterWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
+
+      // 2. Store user session
+      UserSession presenter = new UserSession(session);
+      presenter.setWebRtcEndpoint(presenterWebRtc);
+      presenter.setMediaPipeline(pipeline);
+
+      // 3. Save presenter
+      presenters.put(session.getId(), presenter);
+      System.out.println("presenters: " + presenters.keySet());
+
       presenterWebRtc.addIceCandidateFoundListener(new EventListener<IceCandidateFoundEvent>() {
 
         @Override
@@ -156,14 +172,14 @@ public class CallHandler extends TextWebSocketHandler {
 
       String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
       String sdpAnswer = presenterWebRtc.processOffer(sdpOffer);
-
       JsonObject response = new JsonObject();
       response.addProperty("id", "presenterResponse");
       response.addProperty("response", "accepted");
       response.addProperty("sdpAnswer", sdpAnswer);
 
       synchronized (session) {
-        presenterUserSession.sendMessage(response);
+        //userRedisRepository.findById(session.getId()).get().sendMessage(response);
+        presenters.get(session.getId()).sendMessage(response);
       }
       presenterWebRtc.gatherCandidates();
 
@@ -179,7 +195,8 @@ public class CallHandler extends TextWebSocketHandler {
 
   private synchronized void viewer(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
-    if (presenterUserSession == null || presenterUserSession.getWebRtcEndpoint() == null) {
+
+    if (presenters.isEmpty()) {
       JsonObject response = new JsonObject();
       response.addProperty("id", "viewerResponse");
       response.addProperty("response", "rejected");
@@ -187,6 +204,18 @@ public class CallHandler extends TextWebSocketHandler {
           "No active sender now. Become sender or . Try again later ...");
       session.sendMessage(new TextMessage(response.toString()));
     } else {
+
+      // get first presenter
+      UserSession presenterSession = null;
+      WebRtcEndpoint nextWebRtc = null;
+      if (presenters.get(jsonMessage.get("room")) == null) {
+        HashMap.Entry<String,UserSession> entry = presenters.entrySet().iterator().next();
+        presenterSession = entry.getValue();
+      } else {
+        presenterSession = presenters.get(jsonMessage.get("room"));
+      }
+      nextWebRtc = new WebRtcEndpoint.Builder(presenterSession.getMediaPipeline()).build();
+
       if (viewers.containsKey(session.getId())) {
         JsonObject response = new JsonObject();
         response.addProperty("id", "viewerResponse");
@@ -196,11 +225,19 @@ public class CallHandler extends TextWebSocketHandler {
         session.sendMessage(new TextMessage(response.toString()));
         return;
       }
+
       UserSession viewer = new UserSession(session);
       viewers.put(session.getId(), viewer);
 
-      WebRtcEndpoint nextWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
+
       System.out.println("viewWebRtcEndpoint: " + nextWebRtc);
+
+      //// viewer
+      System.out.println("view pipeline: " + presenterSession.getMediaPipeline());
+      viewer.setWebRtcEndpoint(nextWebRtc);
+      // Connect !!!!!!
+      presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
+      //userRedisRepository.findById(session.getId()).get().getWebRtcEndpoint().connect(nextWebRtc);
 
       nextWebRtc.addIceCandidateFoundListener(new EventListener<IceCandidateFoundEvent>() {
 
@@ -219,11 +256,7 @@ public class CallHandler extends TextWebSocketHandler {
         }
       });
 
-      //// viewer
-      System.out.println("view pipeline: " + pipeline);
-      viewer.setWebRtcEndpoint(nextWebRtc);
-      // Connect !!!!!!
-      presenterUserSession.getWebRtcEndpoint().connect(nextWebRtc);
+
       String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
       String sdpAnswer = nextWebRtc.processOffer(sdpOffer);
 
@@ -241,7 +274,14 @@ public class CallHandler extends TextWebSocketHandler {
 
   private synchronized void stop(WebSocketSession session) throws IOException {
     String sessionId = session.getId();
-    if (presenterUserSession != null && presenterUserSession.getSession().getId().equals(sessionId)) {
+
+    HashMap.Entry<String,UserSession> entry = presenters.entrySet().iterator().next();
+    String presenterId = entry.getKey();
+    UserSession presenterSession =entry.getValue();
+    MediaPipeline thisPipeline = presenterSession.getMediaPipeline();
+
+//    if (presenterUserSession != null && presenterUserSession.getSession().getId().equals(sessionId)) {
+    if (presenters.get(presenterId) != null  && presenterId.equals(sessionId)) {
       for (UserSession viewer : viewers.values()) {
         JsonObject response = new JsonObject();
         response.addProperty("id", "stopCommunication");
@@ -249,11 +289,11 @@ public class CallHandler extends TextWebSocketHandler {
       }
 
       log.info("Releasing media pipeline");
-      if (pipeline != null) {
-        pipeline.release();
+      if (thisPipeline != null) {
+        thisPipeline.release();
       }
-      pipeline = null;
-      presenterUserSession = null;
+      thisPipeline = null;
+      presenters.remove(session.getId());
     } else if (viewers.containsKey(sessionId)) {
       if (viewers.get(sessionId).getWebRtcEndpoint() != null) {
         viewers.get(sessionId).getWebRtcEndpoint().release();

@@ -18,28 +18,31 @@
 package com.example.signalling2.domain;
 
 import com.google.gson.JsonObject;
+import lombok.Setter;
 import org.kurento.client.IceCandidate;
+import org.kurento.client.MediaPipeline;
 import org.kurento.client.WebRtcEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
-
+import lombok.Getter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
 import java.io.IOException;
 
-/**
- * User session.
- * 
- * @author Boni Garcia (bgarcia@gsyc.es)
- * @since 5.0.0
- */
+@RedisHash("user-table")
+@Getter
+@Setter
 public class UserSession {
 
+  @Id
+  private String id;
   private static final Logger log = LoggerFactory.getLogger(UserSession.class);
 
   private final WebSocketSession session;
   private WebRtcEndpoint webRtcEndpoint;
-
+  private MediaPipeline mediaPipeline;
   public UserSession(WebSocketSession session) {
     this.session = session;
   }
@@ -56,12 +59,22 @@ public class UserSession {
   public WebRtcEndpoint getWebRtcEndpoint() {
     return webRtcEndpoint;
   }
-
   public void setWebRtcEndpoint(WebRtcEndpoint webRtcEndpoint) {
     this.webRtcEndpoint = webRtcEndpoint;
   }
 
+  public MediaPipeline getMediaPipeline() {return mediaPipeline;}
+  public void setMediaPipeline(MediaPipeline mediaPipeline) { this.mediaPipeline = mediaPipeline;}
+
   public void addCandidate(IceCandidate candidate) {
     webRtcEndpoint.addIceCandidate(candidate);
   }
+
+//  @Builder
+//  public UserSession(WebSocketSession session, WebRtcEndpoint webRtcEndpoint) {
+//    this.session = session;
+//    this.id = session.getId();
+//    this.webRtcEndpoint = webRtcEndpoint;
+//    // 여기에 webRtcEndpoint 두면 아직 생성 전이라 오류남
+//  }
 }
