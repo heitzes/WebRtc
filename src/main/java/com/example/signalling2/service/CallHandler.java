@@ -22,11 +22,13 @@ import com.example.signalling2.repository.UserRedisRepository;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import lombok.RequiredArgsConstructor;
 import org.kurento.client.*;
 import org.kurento.jsonrpc.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -41,7 +43,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Boni Garcia (bgarcia@gsyc.es)
  * @since 5.0.0
  */
-@Service
+@Component
+@RequiredArgsConstructor
 public class CallHandler extends TextWebSocketHandler {
 
   private static final Logger log = LoggerFactory.getLogger(CallHandler.class);
@@ -50,16 +53,16 @@ public class CallHandler extends TextWebSocketHandler {
   private final ConcurrentHashMap<String, UserSession> viewers = new ConcurrentHashMap<String, UserSession>();
   private final ConcurrentHashMap<String, UserSession> presenters = new ConcurrentHashMap<String, UserSession>();
 
+
   private final KurentoClient kurento;
+  private final UserRedisRepository userRedisRepository;
 
-  private UserRedisRepository userRedisRepository;
 
-
-  @Autowired
-  public CallHandler(KurentoClient kurento, UserRedisRepository userRedisRepository) {
-    this.kurento = kurento;
-    this.userRedisRepository = userRedisRepository;
-  }
+//  @Autowired
+//  public CallHandler(KurentoClient kurento, UserRedisRepository userRedisRepository) {
+//    this.kurento = kurento;
+//    this.userRedisRepository = userRedisRepository;
+//  }
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -151,7 +154,8 @@ public class CallHandler extends TextWebSocketHandler {
 
       // 3. Save presenter
       presenters.put(session.getId(), presenter);
-      System.out.println("presenters: " + presenters.keySet());
+      System.out.println("presenters keys: " + presenters.keys());
+      System.out.println("presenters values: " + presenters.values());
 
       presenterWebRtc.addIceCandidateFoundListener(new EventListener<IceCandidateFoundEvent>() {
 
