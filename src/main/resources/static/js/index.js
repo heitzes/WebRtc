@@ -180,9 +180,12 @@ function onOfferViewer(error, offerSdp) {
 	console.info('Invoking SDP offer callback function ' + location.host);
 	var message = {
 		id : 'viewer',
+		roomId: 'test',
 		sdpOffer : offerSdp,
-		room: 'test',
 	}
+
+	console.info(' ------------------------------------- ');
+	console.info(message);
 	sendMessage(message);
 }
 

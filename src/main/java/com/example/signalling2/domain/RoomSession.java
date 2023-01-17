@@ -7,17 +7,29 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 import java.util.concurrent.ConcurrentHashMap;
 
-@RedisHash("room-table")
-@Getter
 public class RoomSession {
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public Long getView() {
+        return view;
+    }
+
+    public void setView(Long view) {
+        this.view = view;
+    }
+
     @Id
     private String id;
-
-    private ConcurrentHashMap<String, UserSession> viewers;
-
+    private Long view;
     @Builder
-    public RoomSession(String id, ConcurrentHashMap viewers) {
+    public RoomSession(String id) {
         this.id = id;
-        this.viewers = viewers;
+        this.view = 0L;
     }
 }

@@ -17,7 +17,10 @@
 
 package com.example.signalling2.service;
 
+import com.example.signalling2.domain.RoomSession;
 import com.example.signalling2.domain.UserSession;
+import com.example.signalling2.repository.MemoryRoomRepository;
+import com.example.signalling2.repository.RoomRepository;
 import com.example.signalling2.repository.UserRedisRepository;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -44,25 +47,27 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 5.0.0
  */
 @Component
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class CallHandler extends TextWebSocketHandler {
 
   private static final Logger log = LoggerFactory.getLogger(CallHandler.class);
   private static final Gson gson = new GsonBuilder().create();
 
-  private final ConcurrentHashMap<String, UserSession> viewers = new ConcurrentHashMap<String, UserSession>();
-  private final ConcurrentHashMap<String, UserSession> presenters = new ConcurrentHashMap<String, UserSession>();
+  private final ConcurrentHashMap<String, String> viewers = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, UserSession> presenters = new ConcurrentHashMap<>();
+
+  private final ConcurrentHashMap<String, ConcurrentHashMap<String, UserSession>> rooms = new ConcurrentHashMap<>();
 
 
   private final KurentoClient kurento;
-  private final UserRedisRepository userRedisRepository;
-
-
-//  @Autowired
-//  public CallHandler(KurentoClient kurento, UserRedisRepository userRedisRepository) {
-//    this.kurento = kurento;
-//    this.userRedisRepository = userRedisRepository;
-//  }
+  // private final UserRedisRepository userRedisRepository;
+  // private final UserService userService;
+  private final RoomRepository roomRepository;
+  @Autowired
+  public CallHandler(KurentoClient kurento, RoomRepository roomRepository) {
+    this.kurento = kurento;
+    this.roomRepository = roomRepository;
+  }
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -107,7 +112,8 @@ public class CallHandler extends TextWebSocketHandler {
           if (presenters.get(session.getId()) != null && presenters.get(session.getId()).getSession() == session) { // webSocketSession과 session이 같은지 비교
             user = presenters.get(session.getId());
           } else {
-            user = viewers.get(session.getId());
+            String roomId = viewers.get(session.getId());
+            user = rooms.get(roomId).get(session.getId());
           }
         }
         if (user != null) {
@@ -154,8 +160,18 @@ public class CallHandler extends TextWebSocketHandler {
 
       // 3. Save presenter
       presenters.put(session.getId(), presenter);
+      viewers.put(session.getId(), session.getId());
       System.out.println("presenters keys: " + presenters.keys());
       System.out.println("presenters values: " + presenters.values());
+
+      // 4. Create room
+      rooms.put(session.getId(), new ConcurrentHashMap<String, UserSession>());
+
+      // Save in UserRepository
+      // userService.save(presenter);
+      RoomSession roomSession = new RoomSession(session.getId());
+      roomRepository.save(roomSession);
+
 
       presenterWebRtc.addIceCandidateFoundListener(new EventListener<IceCandidateFoundEvent>() {
 
@@ -209,18 +225,23 @@ public class CallHandler extends TextWebSocketHandler {
       session.sendMessage(new TextMessage(response.toString()));
     } else {
 
-      // get first presenter
       UserSession presenterSession = null;
       WebRtcEndpoint nextWebRtc = null;
-      if (presenters.get(jsonMessage.get("room")) == null) {
+
+      String roomId = String.valueOf(jsonMessage.get("roomId"));
+      if (!presenters.containsKey(roomId)) { // 일단 키가 없으면 (방이 없으면) 맨 첫번째 방에 넣어줌
+        System.out.println("Can't find requested room. Connected to first room...");
         HashMap.Entry<String,UserSession> entry = presenters.entrySet().iterator().next();
         presenterSession = entry.getValue();
-      } else {
-        presenterSession = presenters.get(jsonMessage.get("room"));
+      } else { // show requested streamer
+        System.out.println("Found room!");
+        presenterSession = presenters.get(roomId);
       }
       nextWebRtc = new WebRtcEndpoint.Builder(presenterSession.getMediaPipeline()).build();
 
-      if (viewers.containsKey(session.getId())) {
+      // find specific room in rooms
+      ConcurrentHashMap<String, UserSession> room = rooms.get(roomId);
+      if (room.containsKey(session.getId())) {
         JsonObject response = new JsonObject();
         response.addProperty("id", "viewerResponse");
         response.addProperty("response", "rejected");
@@ -231,7 +252,8 @@ public class CallHandler extends TextWebSocketHandler {
       }
 
       UserSession viewer = new UserSession(session);
-      viewers.put(session.getId(), viewer);
+      room.put(session.getId(), viewer);
+      viewers.put(session.getId(), roomId);
 
 
       System.out.println("viewWebRtcEndpoint: " + nextWebRtc);
@@ -277,32 +299,42 @@ public class CallHandler extends TextWebSocketHandler {
   }
 
   private synchronized void stop(WebSocketSession session) throws IOException {
-    String sessionId = session.getId();
+    String sessionId = session.getId(); // user who requested stop
+    String roomId = viewers.get(sessionId);
+    ConcurrentHashMap<String, UserSession> room = rooms.get(roomId);
 
-    HashMap.Entry<String,UserSession> entry = presenters.entrySet().iterator().next();
-    String presenterId = entry.getKey();
-    UserSession presenterSession =entry.getValue();
-    MediaPipeline thisPipeline = presenterSession.getMediaPipeline();
+//    String roomId = String.valueOf(jsonMessage.get("roomId"));
+//    ConcurrentHashMap<String, UserSession> room = rooms.get(roomId);
+
+//    HashMap.Entry<String,UserSession> entry = presenters.entrySet().iterator().next();
+//    String presenterId = entry.getKey(); // session-id
+//    UserSession presenterSession =entry.getValue();
+//    MediaPipeline thisPipeline = presenterSession.getMediaPipeline();
 
 //    if (presenterUserSession != null && presenterUserSession.getSession().getId().equals(sessionId)) {
-    if (presenters.get(presenterId) != null  && presenterId.equals(sessionId)) {
-      for (UserSession viewer : viewers.values()) {
+    if (presenters.get(sessionId) != null && presenters.containsKey(sessionId)) {
+      for (UserSession viewer : room.values()) { // 이 코드 수정 안하면 방 하나 터질때 모든 뷰어 방 다터짐... // 수정완료
         JsonObject response = new JsonObject();
         response.addProperty("id", "stopCommunication");
         viewer.sendMessage(response);
       }
 
+      MediaPipeline thisPipeline = presenters.get(sessionId).getMediaPipeline();
       log.info("Releasing media pipeline");
       if (thisPipeline != null) {
         thisPipeline.release();
       }
       thisPipeline = null;
-      presenters.remove(session.getId());
-    } else if (viewers.containsKey(sessionId)) {
-      if (viewers.get(sessionId).getWebRtcEndpoint() != null) {
-        viewers.get(sessionId).getWebRtcEndpoint().release();
+      presenters.remove(sessionId); // presenters에서 session 삭제
+      roomRepository.delete(sessionId);
+      rooms.remove(sessionId);
+
+      System.out.println("=======presenter session closed========");
+    } else if (room.containsKey(sessionId)) { // viewer가 stop 했음
+      if (room.get(sessionId).getWebRtcEndpoint() != null) {
+        room.get(sessionId).getWebRtcEndpoint().release();
       }
-      viewers.remove(sessionId);
+      room.remove(sessionId);
     }
   }
 
