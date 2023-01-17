@@ -34,6 +34,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -216,7 +218,7 @@ public class CallHandler extends TextWebSocketHandler {
     } else {
 
 
-      String roomId = String.valueOf(jsonMessage.get("roomId")); // 요청한 방id
+      String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
       ConcurrentHashMap<String, UserSession> room = null; // 방 정보
       UserSession presenterSession = null;
       WebRtcEndpoint nextWebRtc = null;
@@ -253,6 +255,10 @@ public class CallHandler extends TextWebSocketHandler {
       // Save Viewer
       room.put(session.getId(), viewer);
       viewers.put(session.getId(), roomId);
+
+      // Add view
+      Optional<RoomSession> roomSession = roomRepository.findById(roomId);
+      roomSession.get().addView();
 
       System.out.println("viewWebRtcEndpoint: " + nextWebRtc);
       System.out.println("view pipeline: " + presenterSession.getMediaPipeline());
@@ -308,6 +314,7 @@ public class CallHandler extends TextWebSocketHandler {
         if (thisPipeline != null) {
           thisPipeline.release();
         }
+
         thisPipeline = null;
         presenters.remove(sessionId); // presenters에서 session 삭제
         roomRepository.delete(sessionId);
@@ -317,6 +324,9 @@ public class CallHandler extends TextWebSocketHandler {
       } else if (room.containsKey(sessionId)) { // viewer라면
         if (room.get(sessionId).getWebRtcEndpoint() != null) {
           room.get(sessionId).getWebRtcEndpoint().release();
+          // Sub view
+          Optional<RoomSession> roomSession = roomRepository.findById(roomId);
+          roomSession.get().subView();
         }
         room.remove(sessionId);
       }
