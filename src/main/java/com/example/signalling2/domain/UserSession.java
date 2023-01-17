@@ -22,8 +22,6 @@ import lombok.Setter;
 import org.kurento.client.IceCandidate;
 import org.kurento.client.MediaPipeline;
 import org.kurento.client.WebRtcEndpoint;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import lombok.Getter;
@@ -38,22 +36,20 @@ public class UserSession {
 
   @Id
   private String id;
-  private static final Logger log = LoggerFactory.getLogger(UserSession.class);
-
   private final WebSocketSession session;
   private WebRtcEndpoint webRtcEndpoint;
   private MediaPipeline mediaPipeline;
+
   public UserSession(WebSocketSession session) {
     this.session = session;
+    this.id = session.getId();
+  }
+  public String getId() {
+    return id;
   }
 
   public WebSocketSession getSession() {
     return session;
-  }
-
-  public void sendMessage(JsonObject message) throws IOException {
-    log.debug("Sending message from user with session Id '{}': {}", session.getId(), message);
-    session.sendMessage(new TextMessage(message.toString()));
   }
 
   public WebRtcEndpoint getWebRtcEndpoint() {
@@ -70,6 +66,9 @@ public class UserSession {
     webRtcEndpoint.addIceCandidate(candidate);
   }
 
+  public void sendMessage(JsonObject message) throws IOException {
+    session.sendMessage(new TextMessage(message.toString()));
+  }
 //  @Builder
 //  public UserSession(WebSocketSession session, WebRtcEndpoint webRtcEndpoint) {
 //    this.session = session;
