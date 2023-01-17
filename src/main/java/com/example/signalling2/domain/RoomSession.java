@@ -24,6 +24,14 @@ public class RoomSession {
         this.view = view;
     }
 
+    public void addView() {
+        ++this.view;
+    }
+
+    public void subView() {
+        --this.view;
+    }
+
     @Id
     private String id;
     private Long view;
