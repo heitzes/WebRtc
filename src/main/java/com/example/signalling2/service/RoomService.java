@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -17,11 +18,21 @@ public class RoomService {
 
     public Room save(Room room) {
         ++sequence;
+        System.out.println("room sequence: " + sequence);
         return memoryRoomRepository.save(room).orElseThrow(()-> new RuntimeException("Room 저장 오류"));
     }
 
     public Room findById(String roomId) {
         return memoryRoomRepository.findById(roomId).orElseThrow(()-> new RuntimeException("Room 존재하지 않음"));
+    }
+
+    public List<String> findAll() {
+        return memoryRoomRepository.findAll();
+    }
+
+    public UserSession findOwner(String roomId) {
+        Room room = this.findById(roomId);
+        return room.getOwner();
     }
 
     public ArrayList<String> findViewers(String roomId) {
@@ -32,15 +43,13 @@ public class RoomService {
 
     public void addViewer(String roomId, String viewerId) {
         Room room = this.findById(roomId);
-        ArrayList<String> viewers = room.getViewers();
-        viewers.add(viewerId);
+        room.getViewers().add(viewerId);
         room.setViewCount(room.getViewCount()+1);
     }
 
     public void subViewer(String roomId, String viewerId) {
         Room room = this.findById(roomId);
-        ArrayList<String> viewers = room.getViewers();
-        viewers.remove(viewerId);
+        room.getViewers().remove(viewerId);
         room.setViewCount(room.getViewCount()-1);
     }
 
@@ -52,10 +61,12 @@ public class RoomService {
     }
 
     public boolean isPresent(String roomId) {
-        if (memoryRoomRepository.findById(roomId) == null) {
-            return false;
+        if (sequence != 0L) {
+            if (memoryRoomRepository.findAll().contains(roomId)) {
+                return true;
+            }
         }
-        return true;
+        return false;
     }
 
     public boolean isViewerExist(String roomId, String viewerId) {
@@ -69,7 +80,7 @@ public class RoomService {
     }
 
     public void remove(String roomId) {
+        --sequence;
         memoryRoomRepository.delete(roomId);
     }
-
 }

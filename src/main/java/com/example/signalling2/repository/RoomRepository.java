@@ -11,5 +11,6 @@ public interface RoomRepository {
     public Optional<Room> findById(String id);
     public Optional<Room> save(Room room);
     public void delete(String id);
+    public List<String> findAll();
 
 }

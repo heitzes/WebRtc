@@ -22,9 +22,22 @@ public class UserService {
     public UserSession save(UserSession session) {
         return memoryUserRepository.save(session).orElseThrow(()-> new RuntimeException("User session 저장 오류"));
     }
+    public void leaveRoom(UserSession userSession) {
+        if (userSession.getWebRtcEndpoint() != null) {
+            userSession.getWebRtcEndpoint().release();
+        }
+        userSession.setWebRtcEndpoint(null);
+        userSession.setMediaPipeline(null);
+        userSession.setRoomId(null);
+    }
 
     public void remove(String userId) {
         memoryUserRepository.delete(userId);
+    }
+
+    public void endLive(String userId) {
+        UserSession user = this.findById(userId);
+
     }
 
     public UserSession findById(String userId) {

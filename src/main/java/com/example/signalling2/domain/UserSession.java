@@ -45,6 +45,14 @@ public class UserSession {
     this.session = session;
     this.id = session.getId();
   }
+
+  public void releaseEP() {
+    if (this.webRtcEndpoint != null) {
+      this.webRtcEndpoint.release();
+    }
+    this.webRtcEndpoint = null;
+  }
+
   public String getId() {
     return this.id;
   }

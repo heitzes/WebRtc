@@ -18,13 +18,13 @@
 package com.example.signalling2.service;
 
 import com.example.signalling2.domain.Room;
-import com.example.signalling2.domain.RoomSession;
 import com.example.signalling2.domain.UserSession;
 import com.example.signalling2.repository.RoomSessionRepository;
 import com.example.signalling2.repository.UserRepository;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import org.apache.catalina.User;
 import org.kurento.client.*;
 import org.kurento.jsonrpc.JsonUtils;
 import org.slf4j.Logger;
@@ -36,8 +36,6 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -61,6 +59,8 @@ public class CallHandler extends TextWebSocketHandler {
   private final RoomSessionRepository roomSessionRepository;
   private final UserService userService;
   private final RoomService roomService;
+
+  private static String firstRoomId;
 
   @Autowired
   public CallHandler(KurentoClient kurento, RoomSessionRepository roomSessionRepository, UserRepository userRepository, UserService userService, RoomService roomService) {
@@ -108,16 +108,9 @@ public class CallHandler extends TextWebSocketHandler {
 
         UserSession user = null;
         // refactor
-//        if (!roomService.isEmpty()) {
-        if (!presenters.isEmpty()) {
-          if (presenters.containsKey(session.getId())) { // presenters에 이 session의 id가 있으면 presenter임
-            user = presenters.get(session.getId());
-          } else {
-            String roomId = viewers.get(session.getId()); // viewerId - roomId 해시맵인 viewers로부터 roomId 가져옴
-            user = rooms.get(roomId).get(session.getId());
-          }
+        if (!roomService.isEmpty()) {
           // refactor (추후 onIceCandidate 웹소켓 통신시 roomId도 달라고 해야할듯..)
-//          user = userService.findById(session.getId());
+          user = userService.findById(session.getId());
         }
         if (user != null) {
           IceCandidate cand =
@@ -148,7 +141,8 @@ public class CallHandler extends TextWebSocketHandler {
 
   private synchronized void presenter(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
-    if (!presenters.containsKey(session.getId())) { // sessionId not in presenters map
+    //refactor
+    if (!roomService.isPresent(session.getId())){
 
       // presenter setting
 
@@ -160,29 +154,16 @@ public class CallHandler extends TextWebSocketHandler {
       UserSession presenter = new UserSession(session);
       presenter.setWebRtcEndpoint(presenterWebRtc);
       presenter.setMediaPipeline(pipeline);
+      presenter.setRoomId(session.getId());
 
       // 3. Save presenter
-      presenters.put(session.getId(), presenter);
-      viewers.put(session.getId(), session.getId());
-
       //// refactor
       userService.save(presenter);
       Room room = new Room(presenter);
+      firstRoomId = session.getId();
       roomService.save(room);
       ///
-
-
-      System.out.println("presenters keys: " + presenters.keys());
-      System.out.println("presenters values: " + presenters.values());
-
-      // 4. Create room
-      rooms.put(session.getId(), new ConcurrentHashMap<String, UserSession>());
-
-
-      // Save in UserRepository
-      RoomSession roomSession = new RoomSession(session.getId());
-      roomSessionRepository.save(roomSession);
-
+      
 
       presenterWebRtc.addIceCandidateFoundListener(new EventListener<IceCandidateFoundEvent>() {
 
@@ -209,7 +190,7 @@ public class CallHandler extends TextWebSocketHandler {
       response.addProperty("sdpAnswer", sdpAnswer);
 
       synchronized (session) {
-        presenters.get(session.getId()).sendMessage(response);
+        //presenters.get(session.getId()).sendMessage(response);
         //// refactor
         userService.findById(session.getId()).sendMessage(response);
       }
@@ -229,8 +210,8 @@ public class CallHandler extends TextWebSocketHandler {
       throws IOException {
 
     //// refactor
-//    if (roomService.isEmpty()) {
-    if (presenters.isEmpty()) {
+    if (roomService.isEmpty()) {
+//    if (presenters.isEmpty()) {
       JsonObject response = new JsonObject();
       response.addProperty("id", "viewerResponse");
       response.addProperty("response", "rejected");
@@ -239,26 +220,19 @@ public class CallHandler extends TextWebSocketHandler {
       session.sendMessage(new TextMessage(response.toString()));
     } else {
 
-
       String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
-      ConcurrentHashMap<String, UserSession> room = null; // 방 정보
+
+      //// refactor
       UserSession presenterSession = null;
       WebRtcEndpoint nextWebRtc = null;
 
-      //// refactor
-//      Room liveRoom = null;
-
-
       // refactor
-//       if (!roomService.isPresent(roomId)) {
-      if (!rooms.containsKey(roomId)) { // 일단 키가 없으면 (방이 없으면) 맨 첫번째 방세션 가져옴
-        System.out.println("Can't find requested room. Connected to first room...");
-        HashMap.Entry<String,UserSession> entry = presenters.entrySet().iterator().next();
-        room = rooms.get(entry.getKey()); // 첫번째 방
-        presenterSession = entry.getValue();
-        roomId = entry.getKey();
+       if (!roomService.isPresent(roomId)) {
 
-        // refactor
+        System.out.println("Can't find requested room. Connected to first room...");
+        roomId = firstRoomId; // 첫번째 방
+         
+        // refactor2 - 추후 방 없으면 아예 못들어가게 할거임
 //        JsonObject response = new JsonObject();
 //        response.addProperty("id", "viewerResponse");
 //        response.addProperty("response", "rejected");
@@ -268,18 +242,12 @@ public class CallHandler extends TextWebSocketHandler {
 
       } else { // show requested streamer
         System.out.println("Found room!");
-        room = rooms.get(roomId); // 요청한 방
-        presenterSession = presenters.get(roomId);
-
-        // refactor
-//        liveRoom = roomService.findById(roomId);
-//        presenterSession = liveRoom.getOwner();
-        presenterSession = roomService.findById(roomId).getOwner();
       }
+       // refactor
+      presenterSession = roomService.findOwner(roomId);
 
       // refactor
-//      if (roomService.isViewerExist(roomId, session.getId())) {
-      if (room.containsKey(session.getId())) { // 이미 방에 viewer가 존재하는지 확인
+      if (roomService.isViewerExist(roomId, session.getId())) { // 이미 방에 viewer가 존재하는지 확인
         JsonObject response = new JsonObject();
         response.addProperty("id", "viewerResponse");
         response.addProperty("response", "rejected");
@@ -294,21 +262,15 @@ public class CallHandler extends TextWebSocketHandler {
       nextWebRtc = new WebRtcEndpoint.Builder(presenterSession.getMediaPipeline()).build();
       viewer.setWebRtcEndpoint(nextWebRtc);
       presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
+      // refactor - viewerSession에 roomId 저장
+      viewer.setRoomId(roomId);
 
       // Save Viewer
-      room.put(session.getId(), viewer);
-      viewers.put(session.getId(), roomId);
-
       //// refactor
       userService.save(viewer);
       roomService.addViewer(roomId, session.getId());
+      System.out.println("Viewer in this room: "+ roomService.findViewers(roomId));
 
-      // Add view
-      Optional<RoomSession> roomSession = roomSessionRepository.findById(roomId);
-      roomSession.get().addView();
-
-      System.out.println("viewWebRtcEndpoint: " + nextWebRtc);
-      System.out.println("view pipeline: " + presenterSession.getMediaPipeline());
 
       nextWebRtc.addIceCandidateFoundListener(new EventListener<IceCandidateFoundEvent>() {
 
@@ -345,80 +307,49 @@ public class CallHandler extends TextWebSocketHandler {
 
   private synchronized void stop(WebSocketSession session) throws IOException {
     String sessionId = session.getId(); // user who requested stop
-    String roomId = viewers.get(sessionId); // 속한 방이 어딘지 찾기
     // refactor
-//    String roomId = userService.findRoomId(sessionId);
+    String roomId = userService.findRoomId(sessionId);
 
-    ConcurrentHashMap<String, UserSession> room = rooms.get(roomId);
     //// refactor
-//    if (roomService.isPresent(roomId)){
-    if (room != null){ // 방이 있다면
-//      if (roomId.equals(sessionId)) {
-      if (presenters.containsKey(sessionId)) { // presenter라면
+    if (roomService.isPresent(roomId)){
+      if (roomId.equals(sessionId)) { // presenter라면
+        // refactor
+        ArrayList<String> viewers = roomService.findViewers(roomId);
+        for (String viewerId : viewers) {
+          // refactor - 방을 떠나도 viewerSession은 사라지지 않는다
+          UserSession viewer = userService.findById(viewerId);
+          userService.leaveRoom(viewer);
 
-          // refactor
-//        ArrayList<String> viewers = roomService.findViewers(roomId);
-//        for (String viewerId : viewers) {
-//          JsonObject response = new JsonObject();
-//          response.addProperty("id", "stopCommunication");
-//          userService.findById(viewerId).sendMessage(response);
-//        }
-
-        for (UserSession viewer : room.values()) { // 이 코드 수정 안하면 방 하나 터질때 모든 뷰어 방 다터짐... // 수정완료
           JsonObject response = new JsonObject();
           response.addProperty("id", "stopCommunication");
           viewer.sendMessage(response);
         }
+        System.out.println("Viewer in this room: "+ roomService.findViewers(roomId));
 
-        MediaPipeline thisPipeline = presenters.get(sessionId).getMediaPipeline();
-        log.info("Releasing media pipeline");
-        if (thisPipeline != null) {
-          thisPipeline.release();
+        // refactor
+        MediaPipeline mediaPipeline = userService.findById(sessionId).getMediaPipeline();
+        if (mediaPipeline != null) {
+          mediaPipeline.release();
         }
 
         // refactor
-//        MediaPipeline mediaPipeline = userService.findById(sessionId).getMediaPipeline();
-//        if (mediaPipeline != null) {
-//          mediaPipeline.release();
-//        }
+        roomService.remove(roomId);
+//        userService. (유저부분에서도 뭔가 처리해야할거같은데... 아닌가?)
 
-        thisPipeline = null;
-        // mediaPipeline = null;
-        presenters.remove(sessionId); // presenters에서 session 삭제
-        roomSessionRepository.delete(sessionId);
-        rooms.remove(sessionId);
+
+        System.out.println("=======live room closed========");
 
         // refactor
-//        userService.remove(sessionId);
-//        roomService.remove(roomId);
-
-
-        System.out.println("=======presenter session closed========");
+      } else if (roomService.isViewerExist(roomId, sessionId)) { // viewer라면
         // refactor
-//      } else if (roomService.isViewerExist(roomId, sessionId)) { // viewer라면
-      } else if (room.containsKey(sessionId)) { // viewer라면
-        // refactor
-//        WebRtcEndpoint viewerWebRtcEndpoint = userService.findById(sessionId).getWebRtcEndpoint();
-//        if (viewerWebRtcEndpoint != null) {
-        if (room.get(sessionId).getWebRtcEndpoint() != null) { // viewer의 webrtcep
-          room.get(sessionId).getWebRtcEndpoint().release();
-
-          // refactor
-          // viewerWebRtcEndpoint.release();
-
-          // Sub view
-          Optional<RoomSession> roomSession = roomSessionRepository.findById(roomId);
-          roomSession.get().subView();
-
-          //refactor
-          roomService.subViewer(roomId, sessionId);
-
-
-        }
-        room.remove(sessionId);
+        UserSession viewer = userService.findById(sessionId);
+        userService.leaveRoom(viewer);
+        roomService.subViewer(roomId, sessionId);
+        System.out.println("Viewer in this room: "+ roomService.findViewers(roomId));
       }
     } else {
       System.out.println("There is no ROOM!");
+      System.out.println(roomService.findAll());
     }
   }
 
@@ -426,5 +357,4 @@ public class CallHandler extends TextWebSocketHandler {
   public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
     stop(session);
   }
-
 }
