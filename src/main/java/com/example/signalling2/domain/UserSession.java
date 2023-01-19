@@ -39,6 +39,7 @@ public class UserSession {
   private final WebSocketSession session;
   private WebRtcEndpoint webRtcEndpoint;
   private MediaPipeline mediaPipeline;
+  private String roomId;
 
   public UserSession(WebSocketSession session) {
     this.session = session;
@@ -46,6 +47,14 @@ public class UserSession {
   }
   public String getId() {
     return id;
+  }
+
+  public String getRoomId() {
+    return roomId;
+  }
+
+  public void setRoomId(String roomId) {
+    this.roomId = roomId;
   }
 
   public WebSocketSession getSession() {
