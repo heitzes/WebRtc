@@ -259,12 +259,12 @@ public class CallHandler extends TextWebSocketHandler {
         roomId = entry.getKey();
 
         // refactor
-        JsonObject response = new JsonObject();
-        response.addProperty("id", "viewerResponse");
-        response.addProperty("response", "rejected");
-        response.addProperty("message",
-                "Can't find room you requested. Room doesn't exist!");
-        session.sendMessage(new TextMessage(response.toString()));
+//        JsonObject response = new JsonObject();
+//        response.addProperty("id", "viewerResponse");
+//        response.addProperty("response", "rejected");
+//        response.addProperty("message",
+//                "Can't find room you requested. Room doesn't exist!");
+//        session.sendMessage(new TextMessage(response.toString()));
 
       } else { // show requested streamer
         System.out.println("Found room!");
