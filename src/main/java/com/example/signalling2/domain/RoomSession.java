@@ -8,6 +8,9 @@ import org.springframework.data.redis.core.RedisHash;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RoomSession {
+    @Id
+    private String id;
+    private Long view;
     public String getId() {
         return id;
     }
@@ -32,9 +35,6 @@ public class RoomSession {
         --this.view;
     }
 
-    @Id
-    private String id;
-    private Long view;
     @Builder
     public RoomSession(String id) {
         this.id = id;

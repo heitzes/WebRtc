@@ -46,7 +46,7 @@ public class UserSession {
     this.id = session.getId();
   }
   public String getId() {
-    return id;
+    return this.id;
   }
 
   public String getRoomId() {
