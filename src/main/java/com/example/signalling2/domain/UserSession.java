@@ -39,13 +39,30 @@ public class UserSession {
   private final WebSocketSession session;
   private WebRtcEndpoint webRtcEndpoint;
   private MediaPipeline mediaPipeline;
+  private String roomId;
 
   public UserSession(WebSocketSession session) {
     this.session = session;
     this.id = session.getId();
   }
+
+  public void releaseEP() {
+    if (this.webRtcEndpoint != null) {
+      this.webRtcEndpoint.release();
+    }
+    this.webRtcEndpoint = null;
+  }
+
   public String getId() {
-    return id;
+    return this.id;
+  }
+
+  public String getRoomId() {
+    return roomId;
+  }
+
+  public void setRoomId(String roomId) {
+    this.roomId = roomId;
   }
 
   public WebSocketSession getSession() {
@@ -69,11 +86,4 @@ public class UserSession {
   public void sendMessage(JsonObject message) throws IOException {
     session.sendMessage(new TextMessage(message.toString()));
   }
-//  @Builder
-//  public UserSession(WebSocketSession session, WebRtcEndpoint webRtcEndpoint) {
-//    this.session = session;
-//    this.id = session.getId();
-//    this.webRtcEndpoint = webRtcEndpoint;
-//    // 여기에 webRtcEndpoint 두면 아직 생성 전이라 오류남
-//  }
 }

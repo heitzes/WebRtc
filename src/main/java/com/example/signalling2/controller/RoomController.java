@@ -1,8 +1,5 @@
 package com.example.signalling2.controller;
-
-import com.example.signalling2.repository.MemoryRoomRepository;
-import com.example.signalling2.repository.RoomRepository;
-import lombok.RequiredArgsConstructor;
+import com.example.signalling2.service.RoomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,16 +10,16 @@ import java.util.List;
 @Controller
 public class RoomController {
 
-    private final MemoryRoomRepository roomRepository;
+    private final RoomService roomService;
 
     @Autowired
-    public RoomController(MemoryRoomRepository roomRepository) {
-        this.roomRepository = roomRepository;
+    public RoomController(RoomService roomService) {
+        this.roomService = roomService;
     }
 
     @RequestMapping("/rooms")
     @ResponseBody // json type으로 반환
     public List<String> getRooms() {
-        return roomRepository.findAll();
+        return roomService.findAll();
     }
 }
