@@ -1,10 +1,4 @@
 package com.example.signalling2.domain;
-
-import com.example.signalling2.service.UserService;
-import lombok.Builder;
-import org.apache.catalina.User;
-import org.springframework.web.socket.WebSocketSession;
-
 import javax.persistence.Id;
 import java.util.ArrayList;
 

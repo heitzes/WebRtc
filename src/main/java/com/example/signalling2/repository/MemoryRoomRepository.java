@@ -3,7 +3,6 @@ package com.example.signalling2.repository;
 import com.example.signalling2.domain.Room;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;

@@ -1,11 +1,9 @@
 package com.example.signalling2.service;
-
 import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.UserSession;
 import com.example.signalling2.repository.MemoryRoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

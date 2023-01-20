@@ -1,8 +1,6 @@
 package com.example.signalling2.repository;
 
-import com.example.signalling2.domain.RoomSession;
 import com.example.signalling2.domain.UserSession;
-import org.apache.catalina.User;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

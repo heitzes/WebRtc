@@ -86,11 +86,4 @@ public class UserSession {
   public void sendMessage(JsonObject message) throws IOException {
     session.sendMessage(new TextMessage(message.toString()));
   }
-//  @Builder
-//  public UserSession(WebSocketSession session, WebRtcEndpoint webRtcEndpoint) {
-//    this.session = session;
-//    this.id = session.getId();
-//    this.webRtcEndpoint = webRtcEndpoint;
-//    // 여기에 webRtcEndpoint 두면 아직 생성 전이라 오류남
-//  }
 }

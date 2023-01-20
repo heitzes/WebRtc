@@ -19,12 +19,10 @@ package com.example.signalling2.service;
 
 import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.UserSession;
-import com.example.signalling2.repository.RoomSessionRepository;
 import com.example.signalling2.repository.UserRepository;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
-import org.apache.catalina.User;
 import org.kurento.client.*;
 import org.kurento.jsonrpc.JsonUtils;
 import org.slf4j.Logger;
@@ -51,21 +49,15 @@ public class CallHandler extends TextWebSocketHandler {
   private static final Logger log = LoggerFactory.getLogger(CallHandler.class);
   private static final Gson gson = new GsonBuilder().create();
 
-  private final ConcurrentHashMap<String, String> viewers = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, UserSession> presenters = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, ConcurrentHashMap<String, UserSession>> rooms = new ConcurrentHashMap<>();
-
   private final KurentoClient kurento;
-  private final RoomSessionRepository roomSessionRepository;
   private final UserService userService;
   private final RoomService roomService;
 
   private static String firstRoomId;
 
   @Autowired
-  public CallHandler(KurentoClient kurento, RoomSessionRepository roomSessionRepository, UserRepository userRepository, UserService userService, RoomService roomService) {
+  public CallHandler(KurentoClient kurento, UserService userService, RoomService roomService) {
     this.kurento = kurento;
-    this.roomSessionRepository = roomSessionRepository;
     this.userService = userService;
     this.roomService = roomService;
   }

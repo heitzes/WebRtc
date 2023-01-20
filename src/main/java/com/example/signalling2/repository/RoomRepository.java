@@ -1,7 +1,6 @@
 package com.example.signalling2.repository;
 
 import com.example.signalling2.domain.Room;
-import com.example.signalling2.domain.UserSession;
 
 import java.util.List;
 import java.util.Optional;
