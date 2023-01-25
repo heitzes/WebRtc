@@ -22,12 +22,12 @@ import com.example.signalling2.domain.UserSession;
 import com.example.signalling2.service.RoomService;
 import com.example.signalling2.service.UserService;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.kurento.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -40,25 +40,16 @@ import java.util.ArrayList;
  * @author Boni Garcia (bgarcia@gsyc.es)
  * @since 5.0.0
  */
+@Slf4j
 @Component
-//@RequiredArgsConstructor
-public class webSocketHandler extends TextWebSocketHandler {
+@RequiredArgsConstructor
+public class WebSocketHandler extends TextWebSocketHandler {
 
-  private static final Logger log = LoggerFactory.getLogger(webSocketHandler.class);
-  private static final Gson gson = new GsonBuilder().create();
-
+  private final Gson gson;
   private final KurentoClient kurento;
   private final UserService userService;
   private final RoomService roomService;
-
-  private static String firstRoomId;
-
-  @Autowired
-  public webSocketHandler(KurentoClient kurento, UserService userService, RoomService roomService) {
-    this.kurento = kurento;
-    this.userService = userService;
-    this.roomService = roomService;
-  }
+  private static String firstRoomId; // TODO: remove this variable when refactor2 in viewer method is finished
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -72,8 +63,6 @@ public class webSocketHandler extends TextWebSocketHandler {
 
   @Override
   public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-
-
     JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
     log.debug("Incoming message from session '{}': {}", session.getId(), jsonMessage);
 
@@ -130,33 +119,28 @@ public class webSocketHandler extends TextWebSocketHandler {
 
   private synchronized void presenter(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
-    //refactor
+    // refactor
     if (!roomService.isPresent(session.getId())){
 
       // presenter setting
+      UserSession presenter = new UserSession(session);
+      String roomId = session.getId();
+      Room room = new Room(presenter);
+      firstRoomId = roomId;
 
-      // 1. Media logic (webRtcEndpoint in loopback)
+      // 1. Media logic
       MediaPipeline pipeline = kurento.createMediaPipeline();
       WebRtcEndpoint presenterWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
-      presenterWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
 
-      // 2. Store user session
-      UserSession presenter = new UserSession(session);
+      // TODO: same code
+      // 2. Change user session
+      presenterWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
       presenter.setWebRtcEndpoint(presenterWebRtc);
       presenter.setMediaPipeline(pipeline);
-      presenter.setRoomId(session.getId());
+      presenter.setRoomId(roomId);
 
-      // 3. Save presenter
-      //// refactor
-      userService.save(presenter);
-      Room room = new Room(presenter);
-      firstRoomId = session.getId();
-      roomService.save(room);
-      ///
-      
-      // refactor
+      // 3. Set iceEventHandler and SDP offer
       presenterWebRtc.addIceCandidateFoundListener(new iceEventHandler(session));
-
       String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
       String sdpAnswer = presenterWebRtc.processOffer(sdpOffer);
       JsonObject response = new JsonObject();
@@ -165,17 +149,21 @@ public class webSocketHandler extends TextWebSocketHandler {
       response.addProperty("sdpAnswer", sdpAnswer);
 
       synchronized (session) {
-        //// refactor
-        userService.findById(session.getId()).sendMessage(response);
+        presenter.sendMessage(response);
       }
       presenterWebRtc.gatherCandidates();
+      // TODO: same code
+
+      // 3. Save presenter
+      userService.save(presenter);
+      roomService.save(room);
 
     } else {
       JsonObject response = new JsonObject();
       response.addProperty("id", "presenterResponse");
       response.addProperty("response", "rejected");
       response.addProperty("message",
-          "Another user is currently acting as sender. Try again later ...");
+          "You are already acting as sender.");
       session.sendMessage(new TextMessage(response.toString()));
     }
   }
@@ -183,9 +171,10 @@ public class webSocketHandler extends TextWebSocketHandler {
   private synchronized void viewer(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
 
+    String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
+
     //// refactor
     if (roomService.isEmpty()) {
-//    if (presenters.isEmpty()) {
       JsonObject response = new JsonObject();
       response.addProperty("id", "viewerResponse");
       response.addProperty("response", "rejected");
@@ -193,8 +182,6 @@ public class webSocketHandler extends TextWebSocketHandler {
           "No active sender now. Become sender or . Try again later ...");
       session.sendMessage(new TextMessage(response.toString()));
     } else {
-
-      String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
 
       //// refactor
       UserSession presenterSession = null;
@@ -231,29 +218,25 @@ public class webSocketHandler extends TextWebSocketHandler {
         return;
       }
 
-      // Create Viewer Session
+      // viewer setting
       UserSession viewer = new UserSession(session);
-      nextWebRtc = new WebRtcEndpoint.Builder(presenterSession.getMediaPipeline()).build();
-      nextWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
 
-      viewer.setWebRtcEndpoint(nextWebRtc);
+      // 1. Media logic
+      MediaPipeline pipeline = presenterSession.getMediaPipeline();
+      nextWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
       presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
-      // refactor - viewerSession에 roomId 저장
+
+      // TODO: same code
+      // 2. Change user session
+      nextWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
+      viewer.setWebRtcEndpoint(nextWebRtc);
+      viewer.setMediaPipeline(pipeline);
       viewer.setRoomId(roomId);
 
-      // Save Viewer
-      //// refactor
-      userService.save(viewer);
-      roomService.addViewer(roomId, session.getId());
-      System.out.println("Viewer in this room: "+ roomService.findViewers(roomId));
-
-      // refactor
+      // 3. Set iceEventHandler and SDP offer
       nextWebRtc.addIceCandidateFoundListener(new iceEventHandler(session));
-
-      // set sdpOffer
       String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
       String sdpAnswer = nextWebRtc.processOffer(sdpOffer);
-
       JsonObject response = new JsonObject();
       response.addProperty("id", "viewerResponse");
       response.addProperty("response", "accepted");
@@ -263,6 +246,11 @@ public class webSocketHandler extends TextWebSocketHandler {
         viewer.sendMessage(response);
       }
       nextWebRtc.gatherCandidates();
+      // TODO: same code
+
+      // 3. Save Viewer
+      userService.save(viewer);
+      roomService.addViewer(roomId, session.getId());
     }
   }
 
@@ -296,8 +284,6 @@ public class webSocketHandler extends TextWebSocketHandler {
         // refactor
         roomService.remove(roomId);
 //        userService. (유저부분에서도 뭔가 처리해야할거같은데... 아닌가?)
-
-
         System.out.println("=======live room closed========");
 
         // refactor

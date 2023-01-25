@@ -11,7 +11,7 @@ import java.io.IOException;
 
 
 public class iceEventHandler implements EventListener<IceCandidateFoundEvent> {
-    private static final Logger log = LoggerFactory.getLogger(webSocketHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(WebSocketHandler.class);
     WebSocketSession session;
     iceEventHandler(WebSocketSession s) {
         this.session = s;
