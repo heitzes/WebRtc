@@ -8,6 +8,6 @@ import org.springframework.context.annotation.Configuration;
 public class KurentoConfig {
     @Bean
     public KurentoClient kurentoClient() {
-        return KurentoClient.create();
+        return KurentoClient.create("ws://10.140.113.213:8888/kurento");
     }
 }
