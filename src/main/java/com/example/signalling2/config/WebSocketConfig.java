@@ -1,6 +1,6 @@
 package com.example.signalling2.config;
 
-import com.example.signalling2.service.CallHandler;
+import com.example.signalling2.handler.webSocketHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -13,12 +13,10 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final CallHandler callHandler;
+    private final webSocketHandler webSocketHandler;
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(callHandler, "/call")
+        registry.addHandler(webSocketHandler, "/call")
                 .setAllowedOrigins("*");
     }
-
-
 }

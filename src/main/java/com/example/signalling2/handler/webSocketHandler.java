@@ -15,26 +15,24 @@
  *
  */
 
-package com.example.signalling2.service;
+package com.example.signalling2.handler;
 
 import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.UserSession;
-import com.example.signalling2.repository.UserRepository;
+import com.example.signalling2.service.RoomService;
+import com.example.signalling2.service.UserService;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import org.kurento.client.*;
-import org.kurento.jsonrpc.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Protocol handler for 1 to N video call communication.
@@ -44,9 +42,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 //@RequiredArgsConstructor
-public class CallHandler extends TextWebSocketHandler {
+public class webSocketHandler extends TextWebSocketHandler {
 
-  private static final Logger log = LoggerFactory.getLogger(CallHandler.class);
+  private static final Logger log = LoggerFactory.getLogger(webSocketHandler.class);
   private static final Gson gson = new GsonBuilder().create();
 
   private final KurentoClient kurento;
@@ -56,7 +54,7 @@ public class CallHandler extends TextWebSocketHandler {
   private static String firstRoomId;
 
   @Autowired
-  public CallHandler(KurentoClient kurento, UserService userService, RoomService roomService) {
+  public webSocketHandler(KurentoClient kurento, UserService userService, RoomService roomService) {
     this.kurento = kurento;
     this.userService = userService;
     this.roomService = roomService;
@@ -64,7 +62,6 @@ public class CallHandler extends TextWebSocketHandler {
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-    System.out.println("session ID: " + session.getId());
     session.sendMessage(new TextMessage(session.getId()));
   }
 
@@ -157,23 +154,8 @@ public class CallHandler extends TextWebSocketHandler {
       roomService.save(room);
       ///
       
-
-      presenterWebRtc.addIceCandidateFoundListener(new EventListener<IceCandidateFoundEvent>() {
-
-        @Override
-        public void onEvent(IceCandidateFoundEvent event) {
-          JsonObject response = new JsonObject();
-          response.addProperty("id", "iceCandidate");
-          response.add("candidate", JsonUtils.toJsonObject(event.getCandidate()));
-          try {
-            synchronized (session) {
-              session.sendMessage(new TextMessage(response.toString()));
-            }
-          } catch (IOException e) {
-            log.debug(e.getMessage());
-          }
-        }
-      });
+      // refactor
+      presenterWebRtc.addIceCandidateFoundListener(new iceEventHandler(session));
 
       String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
       String sdpAnswer = presenterWebRtc.processOffer(sdpOffer);
@@ -183,7 +165,6 @@ public class CallHandler extends TextWebSocketHandler {
       response.addProperty("sdpAnswer", sdpAnswer);
 
       synchronized (session) {
-        //presenters.get(session.getId()).sendMessage(response);
         //// refactor
         userService.findById(session.getId()).sendMessage(response);
       }
@@ -266,23 +247,8 @@ public class CallHandler extends TextWebSocketHandler {
       roomService.addViewer(roomId, session.getId());
       System.out.println("Viewer in this room: "+ roomService.findViewers(roomId));
 
-
-      nextWebRtc.addIceCandidateFoundListener(new EventListener<IceCandidateFoundEvent>() {
-
-        @Override
-        public void onEvent(IceCandidateFoundEvent event) {
-          JsonObject response = new JsonObject();
-          response.addProperty("id", "iceCandidate");
-          response.add("candidate", JsonUtils.toJsonObject(event.getCandidate()));
-          try {
-            synchronized (session) {
-              session.sendMessage(new TextMessage(response.toString()));
-            }
-          } catch (IOException e) {
-            log.debug(e.getMessage());
-          }
-        }
-      });
+      // refactor
+      nextWebRtc.addIceCandidateFoundListener(new iceEventHandler(session));
 
       // set sdpOffer
       String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
@@ -347,6 +313,7 @@ public class CallHandler extends TextWebSocketHandler {
       System.out.println(roomService.findAll());
     }
   }
+
 
   @Override
   public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
