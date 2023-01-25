@@ -141,6 +141,7 @@ public class CallHandler extends TextWebSocketHandler {
       // 1. Media logic (webRtcEndpoint in loopback)
       MediaPipeline pipeline = kurento.createMediaPipeline();
       WebRtcEndpoint presenterWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
+      presenterWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
 
       // 2. Store user session
       UserSession presenter = new UserSession(session);
@@ -252,6 +253,8 @@ public class CallHandler extends TextWebSocketHandler {
       // Create Viewer Session
       UserSession viewer = new UserSession(session);
       nextWebRtc = new WebRtcEndpoint.Builder(presenterSession.getMediaPipeline()).build();
+      nextWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
+
       viewer.setWebRtcEndpoint(nextWebRtc);
       presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
       // refactor - viewerSession에 roomId 저장
@@ -300,7 +303,7 @@ public class CallHandler extends TextWebSocketHandler {
   private synchronized void stop(WebSocketSession session) throws IOException {
     String sessionId = session.getId(); // user who requested stop
     // refactor
-    String roomId = userService.findRoomId(sessionId);
+    String roomId = userService.findRoomId(sessionId); // 방 아무것도 없으면 에러발생
 
     //// refactor
     if (roomService.isPresent(roomId)){
