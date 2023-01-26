@@ -26,8 +26,6 @@ import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.kurento.client.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -117,113 +115,106 @@ public class WebSocketHandler extends TextWebSocketHandler {
     session.sendMessage(new TextMessage(response.toString()));
   }
 
+  //// 코드 리뷰 시작 부분
+  /**
+   * client가 미디어 스트리밍을 시작하면 이 함수를 실행합니다
+   * 이 함수는
+   * - 스트리머 유저 세션을 생성
+   * - 스트리밍 방을 생성(일단은 방id를 스트리머의 세션id로 지정)
+   * - kurento client를 통해 미디어 서버에 pipeline 생성을 요청
+   * - 생성한 pipeline으로 webRtcEndpoint 생성
+   * - 위 정보들을 스트리머 유저 세션에 저장
+   * - 생성한 webRtcEndpoint로 sdpAnswer을 생성하고 ICE candidates gathering 함수 실행
+   * - 메모리에 스트리머 유저 세션과 스트리밍 방을 저장
+   * 기능을 수행합니다.
+   */
   private synchronized void presenter(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
-    // refactor
-    if (!roomService.isPresent(session.getId())){
 
-      // presenter setting
+    // 현재 클라이언트가 스트리밍 중이지 않을때
+    if (!roomService.isPresent(session.getId())){
+      // 스트리머 유저 세션과 스트리밍 방 생성
       UserSession presenter = new UserSession(session);
       String roomId = session.getId();
       Room room = new Room(presenter);
       firstRoomId = roomId;
 
-      // 1. Media logic
+      // 1. Media logic - pipeline과 webRtcEndpoint 생성
       MediaPipeline pipeline = kurento.createMediaPipeline();
       WebRtcEndpoint presenterWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
 
       // TODO: same code
-      // 2. Change user session
+      // 2. Change user session - 스트리머 유저 세션에 정보 저장
       presenterWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
       presenter.setWebRtcEndpoint(presenterWebRtc);
       presenter.setMediaPipeline(pipeline);
       presenter.setRoomId(roomId);
 
-      // 3. Set iceEventHandler and SDP offer
-      presenterWebRtc.addIceCandidateFoundListener(new iceEventHandler(session));
+      // 3. Set iceEventHandler and response to client - 스트리머에게 sdpAnswer 응답
+      presenterWebRtc.addIceCandidateFoundListener(new IceEventHandler(session));
       String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
       String sdpAnswer = presenterWebRtc.processOffer(sdpOffer);
-      JsonObject response = new JsonObject();
-      response.addProperty("id", "presenterResponse");
-      response.addProperty("response", "accepted");
-      response.addProperty("sdpAnswer", sdpAnswer);
+      JsonObject response = ResponseHandler.sdpResponse("presenter", sdpAnswer);
 
       synchronized (session) {
         presenter.sendMessage(response);
       }
+      // ICE candidates gathering
       presenterWebRtc.gatherCandidates();
       // TODO: same code
 
-      // 3. Save presenter
+      // 4. Save UserSession and Room info in server memory
       userService.save(presenter);
       roomService.save(room);
-
     } else {
-      JsonObject response = new JsonObject();
-      response.addProperty("id", "presenterResponse");
-      response.addProperty("response", "rejected");
-      response.addProperty("message",
-          "You are already acting as sender.");
+      // 현재 클라이언트가 이미 스트리밍중임
+      JsonObject response = ResponseHandler.messageResponse("presenter", "already_in");
       session.sendMessage(new TextMessage(response.toString()));
     }
   }
 
+  /**
+   * client가 특정 방에 입장을 시도할 때 이 함수를 실행합니다
+   * 이 함수는
+   * - client에게 받은 roomId로 스트리밍 방과 스트리머의 유저 세션을 찾음
+   * - 뷰어 유저 세션을 생성
+   * - 스트리머 유저 세션에 저장되어 있는 pipeline을 가져와 webRtcEndpoint 생성하고 스트리머의 webRtcEndpoint와 연결
+   * - 위 정보들을 뷰어 유저 세션에 저장
+   * - 생성한 webRtcEndpoint로 sdpAnswer을 생성하고 ICE candidates gathering 함수 실행
+   * - 메모리에 뷰어 유저 세션을 저장하고 스트리밍 방의 뷰어 목록에 뷰어의 세션 id를 추가함
+   */
   private synchronized void viewer(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
 
     String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
-
     //// refactor
     if (roomService.isEmpty()) {
-      JsonObject response = new JsonObject();
-      response.addProperty("id", "viewerResponse");
-      response.addProperty("response", "rejected");
-      response.addProperty("message",
-          "No active sender now. Become sender or . Try again later ...");
+      JsonObject response = ResponseHandler.messageResponse("viewer", "no_room");
       session.sendMessage(new TextMessage(response.toString()));
     } else {
-
-      //// refactor
-      UserSession presenterSession = null;
-      WebRtcEndpoint nextWebRtc = null;
-
       // refactor
-       if (!roomService.isPresent(roomId)) {
-
+      if (!roomService.isPresent(roomId)) {
         System.out.println("Can't find requested room. Connected to first room...");
         roomId = firstRoomId; // 첫번째 방
-         
         // refactor2 - 추후 방 없으면 아예 못들어가게 할거임
-//        JsonObject response = new JsonObject();
-//        response.addProperty("id", "viewerResponse");
-//        response.addProperty("response", "rejected");
-//        response.addProperty("message",
-//                "Can't find room you requested. Room doesn't exist!");
+//        JsonObject response = ResponseHandler.messageResponse("viewer", "no_room");
 //        session.sendMessage(new TextMessage(response.toString()));
-
-      } else { // show requested streamer
-        System.out.println("Found room!");
+//        return;
       }
-       // refactor
-      presenterSession = roomService.findOwner(roomId);
-
-      // refactor
       if (roomService.isViewerExist(roomId, session.getId())) { // 이미 방에 viewer가 존재하는지 확인
-        JsonObject response = new JsonObject();
-        response.addProperty("id", "viewerResponse");
-        response.addProperty("response", "rejected");
-        response.addProperty("message", "You are already viewing in this session. "
-            + "Use a different browser to add additional viewers.");
+        JsonObject response = ResponseHandler.messageResponse("viewer", "already_in");
         session.sendMessage(new TextMessage(response.toString()));
         return;
       }
 
       // viewer setting
+      UserSession presenterSession = roomService.findOwner(roomId);
       UserSession viewer = new UserSession(session);
 
       // 1. Media logic
       MediaPipeline pipeline = presenterSession.getMediaPipeline();
-      nextWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
+      WebRtcEndpoint nextWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
+      // 스트리머의 webRtcEndpoint와 뷰어의 webRtcEndpoint를 연결
       presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
 
       // TODO: same code
@@ -234,13 +225,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
       viewer.setRoomId(roomId);
 
       // 3. Set iceEventHandler and SDP offer
-      nextWebRtc.addIceCandidateFoundListener(new iceEventHandler(session));
+      nextWebRtc.addIceCandidateFoundListener(new IceEventHandler(session));
       String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
       String sdpAnswer = nextWebRtc.processOffer(sdpOffer);
-      JsonObject response = new JsonObject();
-      response.addProperty("id", "viewerResponse");
-      response.addProperty("response", "accepted");
-      response.addProperty("sdpAnswer", sdpAnswer);
+      JsonObject response = ResponseHandler.sdpResponse("viewer", sdpAnswer);
 
       synchronized (session) {
         viewer.sendMessage(response);
@@ -250,6 +238,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
       // 3. Save Viewer
       userService.save(viewer);
+      // 스트리밍 방에 viwer 추가
       roomService.addViewer(roomId, session.getId());
     }
   }
