@@ -242,6 +242,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
       roomService.addViewer(roomId, session.getId());
     }
   }
+//// 코드 리뷰 끝 부분
 
   private synchronized void stop(WebSocketSession session) throws IOException {
     String sessionId = session.getId(); // user who requested stop
