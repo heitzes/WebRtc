@@ -1,19 +1,17 @@
 package com.example.signalling2.handler;
 import com.google.gson.JsonObject;
+import lombok.extern.slf4j.Slf4j;
 import org.kurento.client.EventListener;
 import org.kurento.client.IceCandidateFoundEvent;
 import org.kurento.jsonrpc.JsonUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 
-
-public class iceEventHandler implements EventListener<IceCandidateFoundEvent> {
-    private static final Logger log = LoggerFactory.getLogger(WebSocketHandler.class);
+@Slf4j
+public class IceEventHandler implements EventListener<IceCandidateFoundEvent> {
     WebSocketSession session;
-    iceEventHandler(WebSocketSession s) {
+    IceEventHandler(WebSocketSession s) {
         this.session = s;
     }
     @Override
