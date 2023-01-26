@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 public class KurentoConfig {
     @Bean
     public KurentoClient kurentoClient() {
-        return KurentoClient.create();
-        //return KurentoClient.create("ws://13.125.153.210:8888/kurento");
+//        return KurentoClient.create(); //local
+        return KurentoClient.create("ws://3.34.108.88:8888/kurento"); // aws
     }
 }
