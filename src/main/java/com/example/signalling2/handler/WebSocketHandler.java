@@ -32,12 +32,6 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.util.ArrayList;
 
-/**
- * Protocol handler for 1 to N video call communication.
- *
- * @author Boni Garcia (bgarcia@gsyc.es)
- * @since 5.0.0
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
