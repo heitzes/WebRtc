@@ -20,11 +20,16 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:2.7.7'
     implementation 'org.kurento:kurento-client:6.18.0'
-    implementation 'org.kurento:kurento-client-js:6.18.0'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.webjars.bower:bootstrap:5.2.2'
+    implementation 'org.webjars:webjars-locator:0.45'
+    implementation 'org.webjars.bower:jquery:3.6.2'
+    implementation 'org.webjars.bower:demo-console:1.5.1'
+    implementation 'org.webjars.bower:ekko-lightbox:5.2.0'
+    implementation 'org.webjars.bower:webrtc-adapter:7.4.0'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     annotationProcessor 'org.projectlombok:lombok'
