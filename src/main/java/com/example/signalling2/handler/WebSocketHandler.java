@@ -263,7 +263,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
           response.addProperty("id", "stopCommunication");
           viewer.sendMessage(response);
         }
-        System.out.println("Viewer in this room: "+ roomService.findViewers(roomId));
+        log.trace("Viewer in this room: "+ roomService.findViewers(roomId));
 
         // refactor
         MediaPipeline mediaPipeline = userService.findById(sessionId).getMediaPipeline();
@@ -274,7 +274,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         // refactor
         roomService.remove(roomId);
 //        userService. (유저부분에서도 뭔가 처리해야할거같은데... 아닌가?)
-        System.out.println("=======live room closed========");
+        log.trace("=======live room closed========");
 
         // refactor
       } else if (roomService.isViewerExist(roomId, sessionId)) { // viewer라면
@@ -282,11 +282,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
         UserSession viewer = userService.findById(sessionId);
         userService.leaveRoom(viewer);
         roomService.subViewer(roomId, sessionId);
-        System.out.println("Viewer in this room: "+ roomService.findViewers(roomId));
+        log.trace("Viewer in this room: "+ roomService.findViewers(roomId));
       }
     } else {
-      System.out.println("There is no ROOM!");
-      System.out.println(roomService.findAll());
+      log.warn("There is no ROOM!");
+      log.info("Room list: " + roomService.findAll());
     }
   }
 
