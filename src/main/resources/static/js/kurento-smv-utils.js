@@ -182,7 +182,10 @@ const iceServer = [
             var useDataChannels = options.dataChannels || false;
             var dataChannel;
             var guid = uuidv4();
-            var configuration = recursive({ iceServers: iceServer }, options.configuration);
+            // fixme: media server mode
+            // var configuration = recursive({ iceServers: freeice() }, options.configuration); // vm
+            // var configuration = recursive({ iceServers: [] }, options.configuration); // vm - without stun
+            var configuration = recursive({ iceServers: iceServer }, options.configuration); // aws
             var onicecandidate = options.onicecandidate;
             if (onicecandidate)
                 this.on('icecandidate', onicecandidate);

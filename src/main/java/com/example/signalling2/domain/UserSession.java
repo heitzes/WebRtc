@@ -29,7 +29,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 import java.io.IOException;
 
-@RedisHash("user-table")
 @Getter
 @Setter
 public class UserSession {
@@ -45,32 +44,6 @@ public class UserSession {
     this.session = session;
     this.id = session.getId();
   }
-
-  public String getId() {
-    return this.id;
-  }
-
-  public String getRoomId() {
-    return roomId;
-  }
-
-  public void setRoomId(String roomId) {
-    this.roomId = roomId;
-  }
-
-  public WebSocketSession getSession() {
-    return session;
-  }
-
-  public WebRtcEndpoint getWebRtcEndpoint() {
-    return webRtcEndpoint;
-  }
-  public void setWebRtcEndpoint(WebRtcEndpoint webRtcEndpoint) {
-    this.webRtcEndpoint = webRtcEndpoint;
-  }
-
-  public MediaPipeline getMediaPipeline() {return mediaPipeline;}
-  public void setMediaPipeline(MediaPipeline mediaPipeline) { this.mediaPipeline = mediaPipeline;}
 
   public void addCandidate(IceCandidate candidate) {
     webRtcEndpoint.addIceCandidate(candidate);

@@ -252,8 +252,11 @@ function WebRtcPeer(mode, options, callback) {
     var dataChannel
 
     var guid = uuidv4()
+    // fixme: media server mode
     var configuration = recursive({
             iceServers: iceServer
+            // iceServers: freeice() // vm
+            // iceServers: [] // vm - without stun
         },
         options.configuration)
 
