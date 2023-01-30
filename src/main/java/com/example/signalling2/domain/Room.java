@@ -1,7 +1,12 @@
 package com.example.signalling2.domain;
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.persistence.Id;
 import java.util.ArrayList;
 
+@Getter
+@Setter
 public class Room {
     @Id
     private String id;
@@ -14,29 +19,5 @@ public class Room {
         this.id = session.getId();
         this.viewers = new ArrayList<String>();
         this.viewCount = 0L;
-    }
-
-
-    public String getId() {
-        return id;
-    }
-
-    public UserSession getOwner() {
-        return owner;
-    }
-    public ArrayList<String> getViewers() {
-        return viewers;
-    }
-
-    public void setViewers(ArrayList<String> viewers) {
-        this.viewers = viewers;
-    }
-
-    public Long getViewCount() {
-        return viewCount;
-    }
-
-    public void setViewCount(Long viewCount) {
-        this.viewCount = viewCount;
     }
 }

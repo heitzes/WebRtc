@@ -122,7 +122,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
    * - 메모리에 스트리머 유저 세션과 스트리밍 방을 저장
    * 기능을 수행합니다.
    */
-  private synchronized void presenter(final WebSocketSession session, JsonObject jsonMessage)
+  private void presenter(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
 
     // 현재 클라이언트가 스트리밍 중이지 않을때
@@ -137,7 +137,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
       MediaPipeline pipeline = kurento.createMediaPipeline();
       WebRtcEndpoint presenterWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
 
-      // TODO: same code
+      // todo: same code
       // 2. Change user session - 스트리머 유저 세션에 정보 저장
       presenterWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
       presenter.setWebRtcEndpoint(presenterWebRtc);
@@ -150,12 +150,12 @@ public class WebSocketHandler extends TextWebSocketHandler {
       String sdpAnswer = presenterWebRtc.processOffer(sdpOffer);
       JsonObject response = ResponseHandler.sdpResponse("presenter", sdpAnswer);
 
-      synchronized (session) {
+      synchronized (presenter) {
         presenter.sendMessage(response);
       }
       // ICE candidates gathering
       presenterWebRtc.gatherCandidates();
-      // TODO: same code
+      // todo: same code
 
       // 4. Save UserSession and Room info in server memory
       userService.save(presenter);
@@ -177,7 +177,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
    * - 생성한 webRtcEndpoint로 sdpAnswer을 생성하고 ICE candidates gathering 함수 실행
    * - 메모리에 뷰어 유저 세션을 저장하고 스트리밍 방의 뷰어 목록에 뷰어의 세션 id를 추가함
    */
-  private synchronized void viewer(final WebSocketSession session, JsonObject jsonMessage)
+  private void viewer(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
 
     String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
@@ -211,7 +211,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
       // 스트리머의 webRtcEndpoint와 뷰어의 webRtcEndpoint를 연결
       presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
 
-      // TODO: same code
+      // todo: same code
       // 2. Change user session
       nextWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
       viewer.setWebRtcEndpoint(nextWebRtc);
@@ -224,11 +224,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
       String sdpAnswer = nextWebRtc.processOffer(sdpOffer);
       JsonObject response = ResponseHandler.sdpResponse("viewer", sdpAnswer);
 
-      synchronized (session) {
+      synchronized (viewer) {
         viewer.sendMessage(response);
       }
       nextWebRtc.gatherCandidates();
-      // TODO: same code
+      // todo: same code
 
       // 3. Save Viewer
       userService.save(viewer);

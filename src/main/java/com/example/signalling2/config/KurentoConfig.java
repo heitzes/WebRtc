@@ -10,5 +10,6 @@ public class KurentoConfig {
     public KurentoClient kurentoClient() {
 //        return KurentoClient.create(); //local
         return KurentoClient.create("ws://3.34.108.88:8888/kurento"); // aws
+//        return KurentoClient.create("ws://10.140.113.213:8888/kurento"); // vm
     }
 }
