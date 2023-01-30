@@ -30,7 +30,7 @@ public class ResponseHandler {
                             "You are already acting as sender.");
                     break;
             }
-        } else {
+        } else if (type.equals("viewer")) {
             response.addProperty("id", "viewerResponse");
             response.addProperty("response", "rejected");
             switch (status) {
@@ -42,6 +42,9 @@ public class ResponseHandler {
                     response.addProperty("message", "You are already viewing in this session. "
                             + "Use a different browser to add additional viewers.");
             }
+        } else {
+            response.addProperty("id", "stopCommunication");
+            response.addProperty("message", "Presenter stopped streaming.");
         }
         return response;
     }

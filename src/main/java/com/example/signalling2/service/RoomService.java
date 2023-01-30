@@ -29,24 +29,23 @@ public class RoomService {
     }
 
     public UserSession findOwner(String roomId) {
-        Room room = this.findById(roomId);
+        Room room = findById(roomId);
         return room.getOwner();
     }
 
     public ArrayList<String> findViewers(String roomId) {
-        Optional<Room> room = memoryRoomRepository.findById(roomId);
-        ArrayList<String> viewers = room.get().getViewers();
-        return viewers;
+        Room room = findById(roomId);
+        return room.getViewers();
     }
 
     public void addViewer(String roomId, String viewerId) {
-        Room room = this.findById(roomId);
+        Room room = findById(roomId);
         room.getViewers().add(viewerId);
         room.setViewCount(room.getViewCount()+1);
     }
 
     public void subViewer(String roomId, String viewerId) {
-        Room room = this.findById(roomId);
+        Room room = findById(roomId);
         room.getViewers().remove(viewerId);
         room.setViewCount(room.getViewCount()-1);
     }
@@ -58,23 +57,13 @@ public class RoomService {
         return false;
     }
 
-    public boolean isPresent(String roomId) {
-        if (sequence != 0L) {
-            if (memoryRoomRepository.findAll().contains(roomId)) {
-                return true;
-            }
-        }
-        return false;
+    public Boolean existById(String roomId) {
+        return memoryRoomRepository.findById(roomId).isPresent();
     }
 
+
     public boolean isViewerExist(String roomId, String viewerId) {
-        Optional<Room> room = memoryRoomRepository.findById(roomId);
-        if (room.get()!=null) {
-            if (room.get().getViewers().contains(viewerId)) {
-                return true;
-            }
-        }
-        return false;
+        return findViewers(roomId).contains(viewerId); // fixme: room 존재 안하면 exception 생길텐데?
     }
 
     public void remove(String roomId) {

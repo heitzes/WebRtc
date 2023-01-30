@@ -124,47 +124,47 @@ public class WebSocketHandler extends TextWebSocketHandler {
    */
   private void presenter(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
+    String roomId = session.getId();
 
-    // 현재 클라이언트가 스트리밍 중이지 않을때
-    if (!roomService.isPresent(session.getId())){
-      // 스트리머 유저 세션과 스트리밍 방 생성
-      UserSession presenter = new UserSession(session);
-      String roomId = session.getId();
-      Room room = new Room(presenter);
-      firstRoomId = roomId;
-
-      // 1. Media logic - pipeline과 webRtcEndpoint 생성
-      MediaPipeline pipeline = kurento.createMediaPipeline();
-      WebRtcEndpoint presenterWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
-
-      // todo: same code
-      // 2. Change user session - 스트리머 유저 세션에 정보 저장
-      presenterWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
-      presenter.setWebRtcEndpoint(presenterWebRtc);
-      presenter.setMediaPipeline(pipeline);
-      presenter.setRoomId(roomId);
-
-      // 3. Set iceEventHandler and response to client - 스트리머에게 sdpAnswer 응답
-      presenterWebRtc.addIceCandidateFoundListener(new IceEventHandler(session));
-      String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
-      String sdpAnswer = presenterWebRtc.processOffer(sdpOffer);
-      JsonObject response = ResponseHandler.sdpResponse("presenter", sdpAnswer);
-
-      synchronized (presenter) {
-        presenter.sendMessage(response);
-      }
-      // ICE candidates gathering
-      presenterWebRtc.gatherCandidates();
-      // todo: same code
-
-      // 4. Save UserSession and Room info in server memory
-      userService.save(presenter);
-      roomService.save(room);
-    } else {
-      // 현재 클라이언트가 이미 스트리밍중임
+    // 현재 클라이언트가 이미 스트리밍중임
+    if (roomService.existById(roomId)) {
       JsonObject response = ResponseHandler.messageResponse("presenter", "already_in");
       session.sendMessage(new TextMessage(response.toString()));
+      return; // todo: throw exception
     }
+
+    // 스트리머 유저 세션과 스트리밍 방 생성
+    UserSession presenter = new UserSession(session);
+    Room room = new Room(presenter);
+    firstRoomId = roomId;
+
+    // 1. Media logic - pipeline과 webRtcEndpoint 생성
+    MediaPipeline pipeline = kurento.createMediaPipeline();
+    WebRtcEndpoint presenterWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
+
+    // todo: same code
+    // 2. Change user session - 스트리머 유저 세션에 정보 저장
+    presenterWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
+    presenter.setWebRtcEndpoint(presenterWebRtc);
+    presenter.setMediaPipeline(pipeline);
+    presenter.setRoomId(roomId);
+
+    // 3. Set iceEventHandler and response to client - 스트리머에게 sdpAnswer 응답
+    presenterWebRtc.addIceCandidateFoundListener(new IceEventHandler(session));
+    String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
+    String sdpAnswer = presenterWebRtc.processOffer(sdpOffer);
+    JsonObject response = ResponseHandler.sdpResponse("presenter", sdpAnswer);
+
+    synchronized (presenter) {
+      presenter.sendMessage(response);
+    }
+    // ICE candidates gathering
+    presenterWebRtc.gatherCandidates();
+    // todo: same code
+
+    // 4. Save UserSession and Room info in server memory
+    userService.save(presenter);
+    roomService.save(room);
   }
 
   /**
@@ -181,109 +181,101 @@ public class WebSocketHandler extends TextWebSocketHandler {
       throws IOException {
 
     String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
-    //// refactor
     if (roomService.isEmpty()) {
       JsonObject response = ResponseHandler.messageResponse("viewer", "no_room");
       session.sendMessage(new TextMessage(response.toString()));
-    } else {
-      // refactor
-      if (!roomService.isPresent(roomId)) {
-        System.out.println("Can't find requested room. Connected to first room...");
-        roomId = firstRoomId; // 첫번째 방
-        // refactor2 - 추후 방 없으면 아예 못들어가게 할거임
+      return; // todo: throw exception
+    }
+
+    if (!roomService.existById(roomId)) {
+      System.out.println("Can't find requested room. Connected to first room...");
+      roomId = firstRoomId; // 첫번째 방
+      // todo: throw exception
+      // refactor2 - 추후 방 없으면 아예 못들어가게 할거임
 //        JsonObject response = ResponseHandler.messageResponse("viewer", "no_room");
 //        session.sendMessage(new TextMessage(response.toString()));
 //        return;
-      }
-      if (roomService.isViewerExist(roomId, session.getId())) { // 이미 방에 viewer가 존재하는지 확인
-        JsonObject response = ResponseHandler.messageResponse("viewer", "already_in");
-        session.sendMessage(new TextMessage(response.toString()));
-        return;
-      }
-
-      // viewer setting
-      UserSession presenterSession = roomService.findOwner(roomId);
-      UserSession viewer = new UserSession(session);
-
-      // 1. Media logic
-      MediaPipeline pipeline = presenterSession.getMediaPipeline();
-      WebRtcEndpoint nextWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
-      // 스트리머의 webRtcEndpoint와 뷰어의 webRtcEndpoint를 연결
-      presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
-
-      // todo: same code
-      // 2. Change user session
-      nextWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
-      viewer.setWebRtcEndpoint(nextWebRtc);
-      viewer.setMediaPipeline(pipeline);
-      viewer.setRoomId(roomId);
-
-      // 3. Set iceEventHandler and SDP offer
-      nextWebRtc.addIceCandidateFoundListener(new IceEventHandler(session));
-      String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
-      String sdpAnswer = nextWebRtc.processOffer(sdpOffer);
-      JsonObject response = ResponseHandler.sdpResponse("viewer", sdpAnswer);
-
-      synchronized (viewer) {
-        viewer.sendMessage(response);
-      }
-      nextWebRtc.gatherCandidates();
-      // todo: same code
-
-      // 3. Save Viewer
-      userService.save(viewer);
-      // 스트리밍 방에 viwer 추가
-      roomService.addViewer(roomId, session.getId());
     }
+
+    if (roomService.isViewerExist(roomId, session.getId())) { // 이미 방에 viewer가 존재하는지 확인
+      JsonObject response = ResponseHandler.messageResponse("viewer", "already_in");
+      session.sendMessage(new TextMessage(response.toString()));
+      return; // todo: throw exception
+    }
+
+    // viewer setting
+    UserSession presenterSession = roomService.findOwner(roomId);
+    UserSession viewer = new UserSession(session);
+
+    // 1. Media logic
+    MediaPipeline pipeline = presenterSession.getMediaPipeline();
+    WebRtcEndpoint nextWebRtc = new WebRtcEndpoint.Builder(pipeline).build();
+    // 스트리머의 webRtcEndpoint와 뷰어의 webRtcEndpoint를 연결
+    presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
+
+    // todo: same code
+    // 2. Change user session
+    nextWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
+    viewer.setWebRtcEndpoint(nextWebRtc);
+    viewer.setMediaPipeline(pipeline);
+    viewer.setRoomId(roomId);
+
+    // 3. Set iceEventHandler and SDP offer
+    nextWebRtc.addIceCandidateFoundListener(new IceEventHandler(session));
+    String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
+    String sdpAnswer = nextWebRtc.processOffer(sdpOffer);
+    JsonObject response = ResponseHandler.sdpResponse("viewer", sdpAnswer);
+
+    synchronized (viewer) {
+      viewer.sendMessage(response);
+    }
+    nextWebRtc.gatherCandidates();
+    // todo: same code
+
+    // 3. Save Viewer
+    userService.save(viewer);
+    // 스트리밍 방에 viewer 추가
+    roomService.addViewer(roomId, session.getId());
   }
 //// 코드 리뷰 끝 부분
 
   private synchronized void stop(WebSocketSession session) throws IOException {
     String sessionId = session.getId(); // user who requested stop
-    // refactor
     String roomId = userService.findRoomId(sessionId); // 방 아무것도 없으면 에러발생
+    if (roomId == null) {
+      return; // 이미 방을 나가서 roomId가 null임 // todo: throw exception
+    }
 
-    //// refactor
-    if (roomService.isPresent(roomId)){
+    if (roomService.existById(roomId)){
       if (roomId.equals(sessionId)) { // presenter라면
-        // refactor
         ArrayList<String> viewers = roomService.findViewers(roomId);
         for (String viewerId : viewers) {
-          // refactor - 방을 떠나도 viewerSession은 사라지지 않는다
           UserSession viewer = userService.findById(viewerId);
           userService.leaveRoom(viewer);
-
-          JsonObject response = new JsonObject();
-          response.addProperty("id", "stopCommunication");
+          JsonObject response = ResponseHandler.messageResponse("stop", "");
           viewer.sendMessage(response);
         }
-        log.trace("Viewer in this room: "+ roomService.findViewers(roomId));
 
-        // refactor
-        MediaPipeline mediaPipeline = userService.findById(sessionId).getMediaPipeline();
+        // release media pipeline
+        UserSession presenter = userService.findById(sessionId);
+        MediaPipeline mediaPipeline = presenter.getMediaPipeline();
         if (mediaPipeline != null) {
           mediaPipeline.release();
         }
 
-        // refactor
+        // leave room and remove room
+        userService.leaveRoom(presenter);
         roomService.remove(roomId);
-//        userService. (유저부분에서도 뭔가 처리해야할거같은데... 아닌가?)
-        log.trace("=======live room closed========");
+        System.out.println("=======live room closed========");
 
-        // refactor
       } else if (roomService.isViewerExist(roomId, sessionId)) { // viewer라면
-        // refactor
         UserSession viewer = userService.findById(sessionId);
         userService.leaveRoom(viewer);
         roomService.subViewer(roomId, sessionId);
-        log.trace("Viewer in this room: "+ roomService.findViewers(roomId));
+        System.out.println("Viewer in this room: "+ roomService.findViewers(roomId));
       }
-    } else {
-      log.warn("There is no ROOM!");
-      log.info("Room list: " + roomService.findAll());
     }
   }
-
 
   @Override
   public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {

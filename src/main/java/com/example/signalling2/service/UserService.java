@@ -43,7 +43,7 @@ public class UserService {
     }
 
     public String findRoomId(String userId) {
-        return memoryUserRepository.findById(userId).get().getRoomId();
+        return findById(userId).getRoomId();
     }
 
 }
