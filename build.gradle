@@ -30,6 +30,7 @@ dependencies {
     implementation 'org.webjars.bower:demo-console:1.5.1'
     implementation 'org.webjars.bower:ekko-lightbox:5.2.0'
     implementation 'org.webjars.bower:webrtc-adapter:7.4.0'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     annotationProcessor 'org.projectlombok:lombok'

@@ -25,15 +25,18 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.logging.Log;
 import org.kurento.client.*;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.socket.*;
+import org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.util.ArrayList;
 
 @Slf4j
-@Component
+@Controller // refactor: exceptionHandler 사용 위해 component에서 controller로 변경
 @RequiredArgsConstructor
 public class WebSocketHandler extends TextWebSocketHandler {
 
@@ -50,7 +53,16 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
   @Override
   public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+//    if (exception instanceof IOException) {
+//      System.out.println("An IOException occurred: " + exception.getMessage());
+//      session.close();
+//    }
 
+    try {
+      handleErrorResponse(exception, session, "presenterResponse");
+    } catch (Throwable t) {
+
+    }
   }
 
   @Override
@@ -60,18 +72,16 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     switch (jsonMessage.get("id").getAsString()) {
       case "presenter":
-        try {
-          presenter(session, jsonMessage);
-        } catch (Throwable t) {
-          handleErrorResponse(t, session, "presenterResponse");
-        }
+        presenter(session, jsonMessage);
+        // refactor: exception 처리를 handleTransportError에 위임한다
         break;
       case "viewer":
-        try {
-          viewer(session, jsonMessage);
-        } catch (Throwable t) {
-          handleErrorResponse(t, session, "viewerResponse");
-        }
+        viewer(session, jsonMessage);
+//        try {
+//          viewer(session, jsonMessage);
+//        } catch (Throwable t) {
+//          handleErrorResponse(t, session, "viewerResponse");
+//        }
         break;
       case "onIceCandidate": {
         JsonObject candidate = jsonMessage.get("candidate").getAsJsonObject();
@@ -177,16 +187,19 @@ public class WebSocketHandler extends TextWebSocketHandler {
    * - 생성한 webRtcEndpoint로 sdpAnswer을 생성하고 ICE candidates gathering 함수 실행
    * - 메모리에 뷰어 유저 세션을 저장하고 스트리밍 방의 뷰어 목록에 뷰어의 세션 id를 추가함
    */
+  // todo: webSocket connection 관련해서 발생할 수 있는 exception과 business logic에서 발생하는 exception 분리하기
   private void viewer(final WebSocketSession session, JsonObject jsonMessage)
       throws IOException {
 
     String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
+    // fixme: move this logic to service logic (to separate exception type)
     if (roomService.isEmpty()) {
       JsonObject response = ResponseHandler.messageResponse("viewer", "no_room");
       session.sendMessage(new TextMessage(response.toString()));
       return; // todo: throw exception
     }
 
+    // fixme: move this logic to service logic (to separate exception type)
     if (!roomService.existById(roomId)) {
       System.out.println("Can't find requested room. Connected to first room...");
       roomId = firstRoomId; // 첫번째 방
@@ -196,7 +209,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
 //        session.sendMessage(new TextMessage(response.toString()));
 //        return;
     }
-
+    // fixme: move this logic to service logic (to separate exception type)
     if (roomService.isViewerExist(roomId, session.getId())) { // 이미 방에 viewer가 존재하는지 확인
       JsonObject response = ResponseHandler.messageResponse("viewer", "already_in");
       session.sendMessage(new TextMessage(response.toString()));
@@ -213,7 +226,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     // 스트리머의 webRtcEndpoint와 뷰어의 webRtcEndpoint를 연결
     presenterSession.getWebRtcEndpoint().connect(nextWebRtc);
 
-    // todo: same code
+    // todo: 중복 코드 분리하기
     // 2. Change user session
     nextWebRtc.setTurnUrl("13ce6e6d6f5d2accbc52f389:W56mkybnOQK+u4Yh@216.39.253.11:443"); // turn
     viewer.setWebRtcEndpoint(nextWebRtc);
@@ -227,10 +240,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
     JsonObject response = ResponseHandler.sdpResponse("viewer", sdpAnswer);
 
     synchronized (viewer) {
-      viewer.sendMessage(response);
+      viewer.sendMessage(response); // 여기서 발생한 exception은 handleTransportError이 처리하게 됨
     }
     nextWebRtc.gatherCandidates();
-    // todo: same code
+    // todo: 중복 코드 분리하기
 
     // 3. Save Viewer
     userService.save(viewer);

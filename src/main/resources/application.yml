@@ -1,7 +1,8 @@
 spring:
   redis:
-    host: "localhost"
+    host: 10.140.113.197
     port: 6379
+    database: 4
   output:
     ansi:
       enabled: DETECT
@@ -18,3 +19,11 @@ banner:
   location: classpath:banner.txt
 server:
   port: '8443'
+management:
+  endpoints:
+    web:
+      base-path: /
+      path-mapping:
+        health: health
+      exposure:
+        include: health
