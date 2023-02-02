@@ -18,7 +18,7 @@ logging:
 banner:
   location: classpath:banner.txt
 server:
-  port: '8443'
+  port: 8080
 management:
   endpoints:
     web:
