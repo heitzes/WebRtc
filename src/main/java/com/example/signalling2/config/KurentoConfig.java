@@ -1,15 +1,16 @@
 package com.example.signalling2.config;
 
 import org.kurento.client.KurentoClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class KurentoConfig {
+    @Value("${spring.kurento.host}")
+    private String host;
     @Bean
     public KurentoClient kurentoClient() {
-//        return KurentoClient.create(); //local
-//        return KurentoClient.create("ws://3.34.108.88:8888/kurento"); // aws
-        return KurentoClient.create("ws://10.140.113.213:8888/kurento"); // vm
+        return KurentoClient.create(host); // aws
     }
 }

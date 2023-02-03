@@ -12,4 +12,5 @@ public class CommonConfig {
     public Gson getGson() {
         return new GsonBuilder().create();
     }
+
 }

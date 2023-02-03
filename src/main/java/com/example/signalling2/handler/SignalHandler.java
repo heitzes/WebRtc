@@ -17,20 +17,23 @@
 
 package com.example.signalling2.handler;
 
+import com.example.signalling2.controller.UserController;
 import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.UserSession;
+import com.example.signalling2.exception.ServiceException;
+import com.example.signalling2.exception.WebSocketException;
+import com.example.signalling2.exception.errcode.ServiceErrorCode;
+import com.example.signalling2.exception.errcode.WebSocketErrCode;
 import com.example.signalling2.service.RoomService;
 import com.example.signalling2.service.UserService;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.logging.Log;
 import org.kurento.client.*;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.socket.*;
-import org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,35 +41,29 @@ import java.util.ArrayList;
 @Slf4j
 @Controller // refactor: exceptionHandler 사용 위해 component에서 controller로 변경
 @RequiredArgsConstructor
-public class WebSocketHandler extends TextWebSocketHandler {
+public class SignalHandler extends TextWebSocketHandler {
 
   private final Gson gson;
   private final KurentoClient kurento;
   private final UserService userService;
+  private final UserController userController;
   private final RoomService roomService;
   private static String firstRoomId; // TODO: remove this variable when refactor2 in viewer method is finished
 
   @Override
-  public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-    session.sendMessage(new TextMessage(session.getId()));
+  public void afterConnectionEstablished(WebSocketSession session) throws WebSocketException {
+    JsonObject response = new JsonObject();
+    response.addProperty("session-id", session.getId());
+    sendMessage(session, response);
   }
 
   @Override
-  public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-//    if (exception instanceof IOException) {
-//      System.out.println("An IOException occurred: " + exception.getMessage());
-//      session.close();
-//    }
-
-    try {
-      handleErrorResponse(exception, session, "presenterResponse");
-    } catch (Throwable t) {
-
-    }
+  public void handleTransportError(WebSocketSession session, Throwable exception) throws WebSocketException {
+    System.out.println("decorator throws error to here!");
   }
 
   @Override
-  public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+  public void handleTextMessage(WebSocketSession session, TextMessage message) throws WebSocketException {
     JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
     log.debug("Incoming message from session '{}': {}", session.getId(), jsonMessage);
 
@@ -108,16 +105,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
   }
 
-  private void handleErrorResponse(Throwable throwable, WebSocketSession session, String responseId)
-      throws IOException {
-    stop(session);
-    log.error(throwable.getMessage(), throwable);
-    JsonObject response = new JsonObject();
-    response.addProperty("id", responseId);
-    response.addProperty("response", "rejected");
-    response.addProperty("message", throwable.getMessage());
-    session.sendMessage(new TextMessage(response.toString()));
-  }
 
   //// 코드 리뷰 시작 부분
   /**
@@ -133,14 +120,14 @@ public class WebSocketHandler extends TextWebSocketHandler {
    * 기능을 수행합니다.
    */
   private void presenter(final WebSocketSession session, JsonObject jsonMessage)
-      throws IOException {
+          throws WebSocketException {
     String roomId = session.getId();
 
     // 현재 클라이언트가 이미 스트리밍중임
     if (roomService.existById(roomId)) {
       JsonObject response = ResponseHandler.messageResponse("presenter", "already_in");
-      session.sendMessage(new TextMessage(response.toString()));
-      return; // todo: throw exception
+      sendMessage(session, response);
+      throw new ServiceException(ServiceErrorCode.ALREADY_IN);
     }
 
     // 스트리머 유저 세션과 스트리밍 방 생성
@@ -166,8 +153,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
     JsonObject response = ResponseHandler.sdpResponse("presenter", sdpAnswer);
 
     synchronized (presenter) {
-      presenter.sendMessage(response);
+      sendMessage(presenter, response, "presenterResponse");
     }
+
+
     // ICE candidates gathering
     presenterWebRtc.gatherCandidates();
     // todo: same code
@@ -189,14 +178,14 @@ public class WebSocketHandler extends TextWebSocketHandler {
    */
   // todo: webSocket connection 관련해서 발생할 수 있는 exception과 business logic에서 발생하는 exception 분리하기
   private void viewer(final WebSocketSession session, JsonObject jsonMessage)
-      throws IOException {
+      throws WebSocketException {
 
     String roomId = jsonMessage.get("roomId").getAsString(); // 요청한 방id
     // fixme: move this logic to service logic (to separate exception type)
     if (roomService.isEmpty()) {
       JsonObject response = ResponseHandler.messageResponse("viewer", "no_room");
-      session.sendMessage(new TextMessage(response.toString()));
-      return; // todo: throw exception
+      sendMessage(session, response);
+      throw new ServiceException(ServiceErrorCode.NO_USER);
     }
 
     // fixme: move this logic to service logic (to separate exception type)
@@ -207,13 +196,13 @@ public class WebSocketHandler extends TextWebSocketHandler {
       // refactor2 - 추후 방 없으면 아예 못들어가게 할거임
 //        JsonObject response = ResponseHandler.messageResponse("viewer", "no_room");
 //        session.sendMessage(new TextMessage(response.toString()));
-//        return;
+//        throw new ServiceException(ServiceErrorCode.NO_USER);
     }
     // fixme: move this logic to service logic (to separate exception type)
     if (roomService.isViewerExist(roomId, session.getId())) { // 이미 방에 viewer가 존재하는지 확인
       JsonObject response = ResponseHandler.messageResponse("viewer", "already_in");
-      session.sendMessage(new TextMessage(response.toString()));
-      return; // todo: throw exception
+      sendMessage(session, response);
+      throw new ServiceException(ServiceErrorCode.ALREADY_IN);
     }
 
     // viewer setting
@@ -240,7 +229,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     JsonObject response = ResponseHandler.sdpResponse("viewer", sdpAnswer);
 
     synchronized (viewer) {
-      viewer.sendMessage(response); // 여기서 발생한 exception은 handleTransportError이 처리하게 됨
+      sendMessage(viewer, response, "viewerResponse"); // 여기서 발생한 exception은 handleTransportError이 처리하게 됨
     }
     nextWebRtc.gatherCandidates();
     // todo: 중복 코드 분리하기
@@ -252,13 +241,17 @@ public class WebSocketHandler extends TextWebSocketHandler {
   }
 //// 코드 리뷰 끝 부분
 
-  private synchronized void stop(WebSocketSession session) throws IOException {
-    String sessionId = session.getId(); // user who requested stop
-    String roomId = userService.findRoomId(sessionId); // 방 아무것도 없으면 에러발생
+  //// 코드 리뷰 시작 부분
+  /** client가 방송 송출/시청을 중단하거나 webSocket 연결이 끊어졌을때 실행되는 메서드입니다. */
+  private synchronized void stop(WebSocketSession session) throws WebSocketException {
+    String sessionId = session.getId();
+    UserSession userSession = userService.findById(sessionId);
+    String roomId = userSession.getRoomId();
+    System.out.println("roomID: " + roomId);
     if (roomId == null) {
-      return; // 이미 방을 나가서 roomId가 null임 // todo: throw exception
+      System.out.println("service exception raised in stop");
+      throw new ServiceException(ServiceErrorCode.ALREADY_OUT);
     }
-
     if (roomService.existById(roomId)){
       if (roomId.equals(sessionId)) { // presenter라면
         ArrayList<String> viewers = roomService.findViewers(roomId);
@@ -266,7 +259,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
           UserSession viewer = userService.findById(viewerId);
           userService.leaveRoom(viewer);
           JsonObject response = ResponseHandler.messageResponse("stop", "");
-          viewer.sendMessage(response);
+          sendMessage(viewer, response, "viewerResponse");
         }
 
         // release media pipeline
@@ -291,7 +284,35 @@ public class WebSocketHandler extends TextWebSocketHandler {
   }
 
   @Override
-  public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-    stop(session);
+  public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws WebSocketException {
+//    stop(session);
+    try {
+      stop(session);
+      // question: ExceptionHandler가 catch할거라 생각했는데 못합니다.
+      // 여기서 catch되지 않은 exception은 override된 이 afterConnectionClosed 함수를 call한 상위 메서드(WebSocketHandlerDecorator.afterConnectionClosed)로 던져지는 듯 합니다.
+      // 상위 메서드로 이 exception을 넘기지 않고 ExceptionHandler가 exception을 handling 하게 하고 싶습니다.
+    }
+    catch (ServiceException e) {
+      System.out.println("Catch ServiceException before decorator catch");
+      System.out.println(e.getServiceErrorCode().getMessage());
+      System.out.println(roomService.findAll());
+    }
+  }
+  //// 코드 리뷰 끝 부분
+
+  private void sendMessage(UserSession userSession, JsonObject response, String userType) throws WebSocketException {
+    try {
+      userSession.sendMessage(response);
+    } catch (IOException e) {
+      throw new WebSocketException(WebSocketErrCode.SESSION_CLOSED);
+    }
+  }
+
+  private void sendMessage(WebSocketSession session, JsonObject response) throws WebSocketException {
+    try {
+      session.sendMessage(new TextMessage(response.toString()));
+    } catch (IOException e) {
+      throw new WebSocketException(WebSocketErrCode.SESSION_CLOSED);
+    }
   }
 }

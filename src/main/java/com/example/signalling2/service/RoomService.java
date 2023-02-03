@@ -1,6 +1,8 @@
 package com.example.signalling2.service;
 import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.UserSession;
+import com.example.signalling2.exception.ServiceException;
+import com.example.signalling2.exception.errcode.ServiceErrorCode;
 import com.example.signalling2.repository.MemoryRoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,11 +19,11 @@ public class RoomService {
     public Room save(Room room) {
         ++sequence;
         System.out.println("room sequence: " + sequence);
-        return memoryRoomRepository.save(room).orElseThrow(()-> new RuntimeException("Room 저장 오류"));
+        return memoryRoomRepository.save(room).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_ROOM));
     }
 
     public Room findById(String roomId) {
-        return memoryRoomRepository.findById(roomId).orElseThrow(()-> new RuntimeException("Room 존재하지 않음"));
+        return memoryRoomRepository.findById(roomId).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_ROOM));
     }
 
     public List<String> findAll() {
