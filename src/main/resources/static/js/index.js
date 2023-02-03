@@ -14,9 +14,7 @@
  * limitations under the License.
  *
  */
-
-var ws = new WebSocket('ws://' + location.host + '/call');
-console.log(ws);
+var axios;
 var video;
 var webRtcPeer;
 
@@ -29,31 +27,34 @@ window.onload = function() {
 window.onbeforeunload = function() {
 	ws.close();
 }
+function messageListender(ws) {
+	if (ws) {
+		ws.onmessage = function(message) {
+			var parsedMessage = JSON.parse(message.data);
+			console.info('Received message: ' + message.data);
 
-ws.onmessage = function(message) {
-	var parsedMessage = JSON.parse(message.data);
-	console.info('Received message: ' + message.data);
-
-	switch (parsedMessage.id) {
-	case 'presenterResponse':
-		presenterResponse(parsedMessage);
-		break;
-	case 'viewerResponse':
-		viewerResponse(parsedMessage);
-		break;
-	case 'iceCandidate':
-		// Exchanged ICE candidates between both peer, by sending the ones generated in the browser,
-		// and processing the candidates received by the remote peer.
-		webRtcPeer.addIceCandidate(parsedMessage.candidate, function(error) {
-			if (error)
-				return console.error('Error adding candidate: ' + error);
-		});
-		break;
-	case 'stopCommunication':
-		dispose();
-		break;
-	default:
-		console.error('Unrecognized message', parsedMessage);
+			switch (parsedMessage.id) {
+				case 'presenterResponse':
+					presenterResponse(parsedMessage);
+					break;
+				case 'viewerResponse':
+					viewerResponse(parsedMessage);
+					break;
+				case 'iceCandidate':
+					// Exchanged ICE candidates between both peer, by sending the ones generated in the browser,
+					// and processing the candidates received by the remote peer.
+					webRtcPeer.addIceCandidate(parsedMessage.candidate, function(error) {
+						if (error)
+							return console.error('Error adding candidate: ' + error);
+					});
+					break;
+				case 'stopCommunication':
+					dispose();
+					break;
+				default:
+					console.error('Unrecognized message', parsedMessage);
+			}
+		}
 	}
 }
 
@@ -64,39 +65,12 @@ function presenterResponse(message) {
 		console.info('Call not accepted for the following reason: ' + errorMsg);
 		dispose();
 	} else {
-		// SDP Answer must be processed by the webRtcEndpoint, in order to fulfill the negotiation.
-		// processAnswer
-		// Callback function invoked when a SDP answer is received.
-		// Developers are expected to invoke this function in order to complete the SDP negotiation.
 		webRtcPeer.processAnswer(message.sdpAnswer, function(error) {
 			if (error)
 				return console.error(error);
 		});
 	}
 }
-// this.processAnswer = function (sdpAnswer, callback) {
-// 	callback = (callback || noop).bind(this);
-// 	var answer = new RTCSessionDescription({
-// 		type: 'answer',
-// 		sdp: sdpAnswer
-// 	});
-// 	if (multistream && usePlanB) {
-// 		var planBAnswer = interop.toPlanB(answer);
-// 		logger.debug('asnwer::planB', dumpSDP(planBAnswer));
-// 		answer = planBAnswer;
-// 	}
-// 	logger.debug('SDP answer received, setting remote description');
-// 	if (pc.signalingState === 'closed') {
-// 		return callback('PeerConnection is closed');
-// 	}
-//// Sets the specified session description as the remote peer's current offer or answer.
-//// The description specifies the properties of the remote end of the connection, including the media format.
-// // It returns a Promise which is fulfilled once the description has been changed, asynchronously.
-// 	pc.setRemoteDescription(answer).then(function () {
-// 		setRemoteVideo();
-// 		callback();
-// 	}, callback);
-// };
 
 function viewerResponse(message) {
 	if (message.response != 'accepted') {
@@ -111,41 +85,54 @@ function viewerResponse(message) {
 	}
 }
 
-// Sent an SDP offer to a remote peer
-function presenter() {
+async function presenter() {
+	var user = await axios.get("http://" + location.host + "/signal/user/1234"); // test
+	ws = new WebSocket('ws://' + location.host + '/signal/call');
 	console.log(location.host);
 	if (!webRtcPeer) {
 		showSpinner(video);
-
 		var options = {
 			localVideo : video,
 			onicecandidate : onIceCandidate
 		}
-		// With this little code, the library takes care of creating the
-		// RTCPeerConnection, and invoking getUserMedia in the browser if needed.
-		// The constraints in the property are used in the invocation, and in this case both microphone and webcam will be used.
-		// However, this does not create the connection.
 		webRtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerSendonly(options,
 				function(error) {
 					if (error) {
 						return console.error(error);
 					}
-
-					// SDP offer is generated with this.generateOffer(onOffer).
-					// The only argument passed is a function,
-					// that will be invoked one the browser’s peer connection has generated that offer.
 					webRtcPeer.generateOffer(onOfferPresenter);
 				});
-
 		enableStopButton();
 	}
+	messageListender(ws);
+}
+
+async function viewer() {
+	var room = await axios.get("http://" + location.host + "/signal/room/rooms");
+	ws = new WebSocket('ws://' + location.host + '/signal/call');
+	console.log(location.host);
+	if (!webRtcPeer) {
+		showSpinner(video);
+		var options = {
+			remoteVideo : video,
+			onicecandidate : onIceCandidate
+		}
+		webRtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerRecvonly(options,
+			function(error) {
+				if (error) {
+					return console.error(error);
+				}
+				this.generateOffer(onOfferViewer);
+			});
+		enableStopButton();
+	}
+	messageListender(ws);
 }
 
 function onOfferPresenter(error, offerSdp) {
 	if (error)
 		return console.error('Error generating the offer');
 	console.info('Invoking SDP offer callback function ' + location.host);
-	
 	// 이 메세지 형식으로 iOS에서 보내주도록 수정완료
 	var message = {
 		id : 'presenter',
@@ -154,25 +141,6 @@ function onOfferPresenter(error, offerSdp) {
 	sendMessage(message);
 }
 
-function viewer() {
-	if (!webRtcPeer) {
-		showSpinner(video);
-
-		var options = {
-			remoteVideo : video,
-			onicecandidate : onIceCandidate
-		}
-		webRtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerRecvonly(options,
-				function(error) {
-					if (error) {
-						return console.error(error);
-					}
-					this.generateOffer(onOfferViewer);
-				});
-
-		enableStopButton();
-	}
-}
 
 function onOfferViewer(error, offerSdp) {
 	if (error)
@@ -183,7 +151,6 @@ function onOfferViewer(error, offerSdp) {
 		roomId: 'test',
 		sdpOffer : offerSdp,
 	}
-
 	console.info(' ------------------------------------- ');
 	console.info(message);
 	sendMessage(message);
@@ -191,7 +158,6 @@ function onOfferViewer(error, offerSdp) {
 
 function onIceCandidate(candidate) {
 	console.log("Local candidate" + JSON.stringify(candidate));
-
 	var message = {
 		id : 'onIceCandidate',
 		candidate : candidate

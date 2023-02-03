@@ -1,11 +1,16 @@
+server:
+  servlet:
+    context-path: /signal
+
 spring:
-  redis:
-    host: 10.140.113.197
-    port: 6379
-    database: 4
+  application:
+    name: signal
+  profiles:
+    default: dev
   output:
     ansi:
-      enabled: DETECT
+      enabled: always
+
 logging:
   level:
     org:
@@ -15,15 +20,11 @@ logging:
       springframework: WARN
       apache: WARN
     root: INFO
-banner:
-  location: classpath:banner.txt
-server:
-  port: 8080
+
+# health check management
 management:
   endpoints:
     web:
-      base-path: /
+      base-path: /healthcheck
       path-mapping:
-        health: health
-      exposure:
-        include: health
+        health: _check

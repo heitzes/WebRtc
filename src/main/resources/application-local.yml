@@ -1,0 +1,11 @@
+server:
+  port: 8080
+
+spring:
+  # kurento config
+  kurento:
+    host: ws://3.34.108.88:8888/kurento # aws
+  redis:
+    host: 10.140.113.197
+    port: 6379
+    database: 4
