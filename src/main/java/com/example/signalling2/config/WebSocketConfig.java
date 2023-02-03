@@ -15,11 +15,11 @@ import org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final SignalHandler webSocketHandler;
+    private final SignalHandler signalHandler;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(webSocketHandler, "/call")
+        registry.addHandler(signalHandler, "/call")
                 .setAllowedOrigins("*");
     }
 }
