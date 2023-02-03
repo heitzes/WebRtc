@@ -86,7 +86,7 @@ function viewerResponse(message) {
 }
 
 async function presenter() {
-	var user = await axios.get("http://" + location.host + "/signal/user/1234"); // test
+	// var user = await axios.get("http://" + location.host + "/signal/user/1234"); // test
 	ws = new WebSocket('ws://' + location.host + '/signal/call');
 	console.log(location.host);
 	if (!webRtcPeer) {
@@ -108,7 +108,7 @@ async function presenter() {
 }
 
 async function viewer() {
-	var room = await axios.get("http://" + location.host + "/signal/room/rooms");
+	// var room = await axios.get("http://" + location.host + "/signal/room/rooms");
 	ws = new WebSocket('ws://' + location.host + '/signal/call');
 	console.log(location.host);
 	if (!webRtcPeer) {
