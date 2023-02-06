@@ -1,0 +1,47 @@
+stages:
+  - build
+  - publish
+  - deploy_dev
+
+
+include:
+  - project: "sgsinfra/gitlab-ci-template"
+    ref: master
+    file:
+      - "/build/.build_common.yml"
+      - "/build/.publish_common.yml"
+      - "/deploy/.deploy_common.yml"
+
+build:
+  stage: build
+  extends:
+    - .gradle-build
+  image:
+    name: registry01.idc-sginfra.net/public-images/gradle:7.6.0-jdk11
+  script:
+    - chmod +x ./gradlew
+    - ./gradlew clean build -x test --build-cache --gradle-user-home cache/ check
+    - ls -alh
+    - ls -alh build
+    - ls -alh build/libs
+  artifacts:
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
+    when: on_success
+    paths:
+      - build/libs
+
+publish:
+  stage: publish
+  extends:
+    - .publish_common
+  variables:
+    ENV: "dev"
+    IMAGE_NAME: "idol-signal"
+
+deploy-dev:
+  stage: deploy_dev
+  extends:
+    - .deploy_common
+  variables:
+    ENV: 'dev'
+    IMAGE_NAME: 'idol-signal'
