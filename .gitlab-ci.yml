@@ -18,12 +18,13 @@ build:
     - .gradle-build
   image:
     name: registry01.idc-sginfra.net/public-images/gradle:7.6.0-jdk11
+  variables:
+    IMAGE_NAME: 'idol-signal'
   script:
     - chmod +x ./gradlew
     - ./gradlew clean build -x test --build-cache --gradle-user-home cache/ check
-    - ls -alh
-    - ls -alh build
-    - ls -alh build/libs
+    - mv build/libs/signalling2-0.0.1-SNAPSHOT.jar build/libs/$IMAGE_NAME.jar
+    - ls -alh build/libs/
   artifacts:
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
     when: on_success
@@ -45,3 +46,4 @@ deploy-dev:
   variables:
     ENV: 'dev'
     IMAGE_NAME: 'idol-signal'
+    CI_PROJECT_NAME: 'idol-api-gateway'
