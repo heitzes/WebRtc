@@ -58,7 +58,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
         break;
       case "onIceCandidate": {
         JsonObject candidate = jsonMessage.get("candidate").getAsJsonObject();
-        onIceCandidate(candidate, email);
+        String roomId = jsonMessage.get("roomId").getAsString();
+        onIceCandidate(candidate, roomId);
         break;
       }
       default:
@@ -87,11 +88,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
     webRtcEndpoint.gatherCandidates();
   }
 
-  private void onIceCandidate(JsonObject candidate, String email) {
-    UserSession user = util.getUser(email);
+  private void onIceCandidate(JsonObject candidate, String roomId) {
+    UserSession streamerSession = util.getUser(roomId);
     IceCandidate cand =
             new IceCandidate(candidate.get("candidate").getAsString(), candidate.get("sdpMid")
                     .getAsString(), candidate.get("sdpMLineIndex").getAsInt());
-    user.addCandidate(cand);
+    streamerSession.addCandidate(cand);
   }
 }

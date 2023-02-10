@@ -90,7 +90,7 @@ async function presenter() {
 	var userResponse = await axios.post("/signal/room/", {
 	}, {
 		headers: {
-			email: "haeky"
+			email: "presenter@naver.com"
 		}
 	});
 	if (userResponse.status !== 201) {
@@ -120,8 +120,8 @@ async function viewer() {
 	var joinResponse = await axios.post("/signal/room/view", {
 	}, {
 		headers: {
-			email: "viewer", // new viewer
-			roomId: "haeky"
+			email: "viewer@naver.com", // new viewer
+			roomId: "presenter@naver.com"
 		}
 	});
 	console.log(joinResponse); // 201
@@ -149,8 +149,8 @@ async function viewer() {
 async function stop() {
 	var stopResponse = await axios.delete("/signal/room", {
 		headers: {
-			email: "haeky",
-			roomId: "haeky"
+			email: "presenter@naver.com",
+			roomId: "presenter@naver.com"
 		}
 	});
 	console.log(stopResponse);
@@ -160,8 +160,8 @@ async function stop() {
 async function leave() {
 	var leaveResponse = await axios.delete("/signal/room/view", {
 		headers: {
-			email: "viewer",
-			roomId: "haeky"
+			email: "viewer@naver.com",
+			roomId: "presenter@naver.com"
 		}
 	});
 	console.log(leaveResponse);
@@ -175,7 +175,7 @@ function onOfferPresenter(error, offerSdp) {
 	// 이 메세지 형식으로 iOS에서 보내주도록 수정완료
 	var message = {
 		id : 'presenter',
-		email : 'haeky', // notice: test
+		email : 'presenter@naver.com', // notice: test
 		sdpOffer : offerSdp
 	}
 	sendMessage(message);
@@ -188,8 +188,7 @@ function onOfferViewer(error, offerSdp) {
 	console.info('Invoking SDP offer callback function ' + location.host);
 	var message = {
 		id : 'viewer',
-		roomId: 'haeky',
-		email: 'viewer',
+		email: 'viewer@naver.com',
 		sdpOffer : offerSdp,
 	}
 	console.info(' ------------------------------------- ');
@@ -201,7 +200,7 @@ function onIceCandidate(candidate) {
 	console.log("Local candidate" + JSON.stringify(candidate));
 	var message = {
 		id : 'onIceCandidate',
-		email : 'haeky', // notice: test
+		roomId : 'presenter@naver.com', // notice: test
 		candidate : candidate
 	};
 	sendMessage(message);
