@@ -5,7 +5,10 @@ import com.example.signalling2.exception.ServiceException;
 import com.example.signalling2.exception.errcode.ServiceErrorCode;
 import com.example.signalling2.repository.MemoryUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.kurento.client.MediaPipeline;
+import org.kurento.client.WebRtcEndpoint;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.WebSocketSession;
 
 @Service
 @RequiredArgsConstructor
@@ -19,20 +22,47 @@ public class UserService {
         return false;
     }
 
-    public UserSession save(UserSession session) {
-        return memoryUserRepository.save(session).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_USER));
+    public UserSession createById(String email) {
+        if (memoryUserRepository.findById(email).isPresent()){
+            throw new ServiceException(ServiceErrorCode.ALREADY_IN);
+        }
+        UserSession user = new UserSession(email);
+        return memoryUserRepository.save(user).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_USER));
     }
-    public void leaveRoom(UserSession userSession) {
+
+    public void deleteById(String email) {
+        if (!memoryUserRepository.findById(email).isPresent()) {
+            throw new ServiceException(ServiceErrorCode.ALREADY_OUT);
+        }
+        memoryUserRepository.delete(email);
+    }
+
+    public void updateById(String email, MediaPipeline pipeline, WebRtcEndpoint ep) {
+        UserSession user = findById(email);
+        user.setMediaPipeline(pipeline);
+        user.setWebRtcEndpoint(ep);
+        user.setRoomId(email);
+    }
+
+    public void updateById(WebSocketSession session, String email) {
+        UserSession user = findById(email);
+        user.setSession(session);
+    }
+    public void releaseViewer(UserSession userSession, String email) {
         if (userSession.getWebRtcEndpoint() != null) {
             userSession.getWebRtcEndpoint().release();
         }
-        userSession.setWebRtcEndpoint(null);
-        userSession.setMediaPipeline(null);
-        userSession.setRoomId(null);
+        memoryUserRepository.delete(email);
     }
 
-    public void remove(String userId) {
-        memoryUserRepository.delete(userId);
+    public void releasePresenter(UserSession userSession, String email) {
+        if (userSession.getMediaPipeline() != null) {
+            userSession.getMediaPipeline().release();
+        }
+        if (userSession.getWebRtcEndpoint() != null) {
+            userSession.getWebRtcEndpoint().release();
+        }
+        memoryUserRepository.delete(email);
     }
 
     public void endLive(String userId) {
@@ -41,7 +71,6 @@ public class UserService {
     }
 
     public UserSession findById(String userId) {
-//        throw new ServiceException(ServiceErrorCode.NO_USER);
         return memoryUserRepository.findById(userId).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_USER));
     }
 

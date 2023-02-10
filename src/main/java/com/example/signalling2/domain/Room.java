@@ -9,14 +9,12 @@ import java.util.ArrayList;
 @Setter
 public class Room {
     @Id
-    private String id;
-    private UserSession owner;
+    private String id; // 유저 이메일로 변경
     private ArrayList<String> viewers;
     private Long viewCount;
 
-    public Room(UserSession session) {
-        this.owner = session;
-        this.id = session.getId();
+    public Room(String email) {
+        this.id = email;
         this.viewers = new ArrayList<String>();
         this.viewCount = 0L;
     }

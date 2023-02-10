@@ -1,25 +1,26 @@
 package com.example.signalling2.config;
 
-import com.example.signalling2.handler.SignalHandler;
+import com.example.signalling2.handler.WebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter;
+import org.springframework.web.socket.adapter.standard.StandardWebSocketSession;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-import org.springframework.web.socket.handler.ExceptionWebSocketHandlerDecorator;
-
 
 @Configuration
 @EnableWebSocket
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final SignalHandler signalHandler;
-
+    private final WebSocketHandler webSocketHandler;
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(signalHandler, "/call")
+        registry.addHandler(webSocketHandler, "/ws")
                 .setAllowedOrigins("*");
     }
+
 }

@@ -21,7 +21,7 @@ var webRtcPeer;
 window.onload = function() {
 	console = new Console();
 	video = document.getElementById('video');
-	disableStopButton();
+	disableStopLeaveButton();
 }
 
 window.onbeforeunload = function() {
@@ -86,8 +86,17 @@ function viewerResponse(message) {
 }
 
 async function presenter() {
-	// var user = await axios.get("http://" + location.host + "/signal/user/1234"); // test
-	ws = new WebSocket('ws://' + location.host + '/signal/call');
+	// notice: test
+	var userResponse = await axios.post("/signal/room/", {
+	}, {
+		headers: {
+			email: "haeky"
+		}
+	});
+	if (userResponse.status !== 201) {
+		return;
+	}
+	ws = new WebSocket('ws://' + location.host + '/signal/ws');
 	console.log(location.host);
 	if (!webRtcPeer) {
 		showSpinner(video);
@@ -102,14 +111,22 @@ async function presenter() {
 					}
 					webRtcPeer.generateOffer(onOfferPresenter);
 				});
-		enableStopButton();
+		enableStopLeaveButton();
 	}
 	messageListender(ws);
 }
 
 async function viewer() {
-	// var room = await axios.get("http://" + location.host + "/signal/room/rooms");
-	ws = new WebSocket('ws://' + location.host + '/signal/call');
+	var joinResponse = await axios.post("/signal/room/view", {
+	}, {
+		headers: {
+			email: "viewer", // new viewer
+			roomId: "haeky"
+		}
+	});
+	console.log(joinResponse); // 201
+
+	ws = new WebSocket('ws://' + location.host + '/signal/ws');
 	console.log(location.host);
 	if (!webRtcPeer) {
 		showSpinner(video);
@@ -124,9 +141,31 @@ async function viewer() {
 				}
 				this.generateOffer(onOfferViewer);
 			});
-		enableStopButton();
+		enableStopLeaveButton();
 	}
 	messageListender(ws);
+}
+
+async function stop() {
+	var stopResponse = await axios.delete("/signal/room", {
+		headers: {
+			email: "haeky",
+			roomId: "haeky"
+		}
+	});
+	console.log(stopResponse);
+	dispose();
+}
+
+async function leave() {
+	var leaveResponse = await axios.delete("/signal/room/view", {
+		headers: {
+			email: "viewer",
+			roomId: "haeky"
+		}
+	});
+	console.log(leaveResponse);
+	dispose();
 }
 
 function onOfferPresenter(error, offerSdp) {
@@ -136,6 +175,7 @@ function onOfferPresenter(error, offerSdp) {
 	// 이 메세지 형식으로 iOS에서 보내주도록 수정완료
 	var message = {
 		id : 'presenter',
+		email : 'haeky', // notice: test
 		sdpOffer : offerSdp
 	}
 	sendMessage(message);
@@ -148,7 +188,8 @@ function onOfferViewer(error, offerSdp) {
 	console.info('Invoking SDP offer callback function ' + location.host);
 	var message = {
 		id : 'viewer',
-		roomId: 'test',
+		roomId: 'haeky',
+		email: 'viewer',
 		sdpOffer : offerSdp,
 	}
 	console.info(' ------------------------------------- ');
@@ -160,18 +201,12 @@ function onIceCandidate(candidate) {
 	console.log("Local candidate" + JSON.stringify(candidate));
 	var message = {
 		id : 'onIceCandidate',
+		email : 'haeky', // notice: test
 		candidate : candidate
 	};
 	sendMessage(message);
 }
 
-function stop() {
-	var message = {
-		id : 'stop'
-	}
-	sendMessage(message);
-	dispose();
-}
 
 function dispose() {
 	if (webRtcPeer) {
@@ -180,19 +215,21 @@ function dispose() {
 	}
 	hideSpinner(video);
 
-	disableStopButton();
+	disableStopLeaveButton();
 }
 
-function disableStopButton() {
+function disableStopLeaveButton() {
 	enableButton('#presenter', 'presenter()');
 	enableButton('#viewer', 'viewer()');
 	disableButton('#stop');
+	disableButton('#leave')
 }
 
-function enableStopButton() {
+function enableStopLeaveButton() {
 	disableButton('#presenter');
 	disableButton('#viewer');
 	enableButton('#stop', 'stop()');
+	enableButton('#leave', 'leave()')
 }
 
 function disableButton(id) {
