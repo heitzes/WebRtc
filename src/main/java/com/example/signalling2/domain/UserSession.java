@@ -18,6 +18,7 @@
 package com.example.signalling2.domain;
 
 import com.google.gson.JsonObject;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.kurento.client.IceCandidate;
 import org.kurento.client.MediaPipeline;
@@ -31,18 +32,22 @@ import java.io.IOException;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class UserSession {
 
   @Id
-  private String id;
-  private final WebSocketSession session;
-  private WebRtcEndpoint webRtcEndpoint;
-  private MediaPipeline mediaPipeline;
+  private String id; // 유저 이메일
+  private WebSocketSession session; // 처음엔 비어있음 (api)
+  private WebRtcEndpoint webRtcEndpoint; // 처음엔 비어있음
+  private MediaPipeline mediaPipeline; // 처음엔 비어있음
   private String roomId;
 
   public UserSession(WebSocketSession session) {
     this.session = session;
     this.id = session.getId();
+  }
+  public UserSession(String email) {
+    this.id = email;
   }
 
   public void addCandidate(IceCandidate candidate) {

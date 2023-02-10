@@ -10,7 +10,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 
-@ActiveProfiles("local")
 @DisplayName("RedisTemplate basic 테스트")
 @DataRedisTest
 public class RedisTest {

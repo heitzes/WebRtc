@@ -1,8 +1,8 @@
-package com.example.signalling2.handler;
+package com.example.signalling2.utils;
 
 import com.google.gson.JsonObject;
 
-public class ResponseHandler {
+public class ResponseUtil {
     public static JsonObject sdpResponse(String type, String SDP) {
         JsonObject response = new JsonObject();
         switch (type) {

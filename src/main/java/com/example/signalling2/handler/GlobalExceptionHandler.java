@@ -1,9 +1,9 @@
 package com.example.signalling2.handler;
 
 import com.example.signalling2.exception.ServiceException;
-import com.example.signalling2.exception.WebSocketException;
+import com.example.signalling2.exception.KurentoException;
 import com.example.signalling2.exception.errcode.ServiceErrorCode;
-import com.example.signalling2.exception.errcode.WebSocketErrCode;
+import com.example.signalling2.exception.errcode.KurentoErrCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -20,12 +20,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(serviceErrorCode.getHttpStatus())
                 .body(serviceErrorCode.getMessage());
     }
-    /** WebSocketException을 핸들링하는 메서드 */
-    @ExceptionHandler(WebSocketException.class)
-    public ResponseEntity<Object> handleWebSocketException(WebSocketException e, WebSocketSession session) {
-        System.out.println("websocket exception handled");
-        WebSocketErrCode webSocketErrorCode = e.getWebSocketErrCode();
-        return ResponseEntity.status(webSocketErrorCode.getHttpStatus())
-                .body(webSocketErrorCode.getMessage());
+    /** KurentoException을 핸들링하는 메서드 */
+    @ExceptionHandler(KurentoException.class)
+    public ResponseEntity<Object> handleKurentoException(KurentoException e) {
+        System.out.println("kurento exception handled");
+        KurentoErrCode kurentoErrCode = e.getKurentoErrCode();
+        return ResponseEntity.status(kurentoErrCode.getHttpStatus())
+                .body(kurentoErrCode.getMessage());
     }
 }

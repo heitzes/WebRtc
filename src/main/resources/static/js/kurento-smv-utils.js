@@ -1753,7 +1753,7 @@ const iceServer = [
             t: [{ //t=0 0
                 name: 'timing',
                 reg: /^(\d*) (\d*)/,
-                names: ['start', 'stop'],
+                names: ['start', 'stop', 'leave'],
                 format: "%d %d"
             }],
             c: [{ //c=IN IP4 10.47.197.26

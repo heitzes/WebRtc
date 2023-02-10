@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,9 +15,12 @@ public class RoomService {
     private final MemoryRoomRepository memoryRoomRepository;
     private long sequence = 0L;
 
-    public Room save(Room room) {
+    public Room createById(String roomId) {
         ++sequence;
-        System.out.println("room sequence: " + sequence);
+        if (memoryRoomRepository.findById(roomId).isPresent()) {
+            throw new ServiceException(ServiceErrorCode.ALREADY_IN);
+        }
+        Room room = new Room(roomId);
         return memoryRoomRepository.save(room).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_ROOM));
     }
 
@@ -30,10 +32,6 @@ public class RoomService {
         return memoryRoomRepository.findAll();
     }
 
-    public UserSession findOwner(String roomId) {
-        Room room = findById(roomId);
-        return room.getOwner();
-    }
 
     public ArrayList<String> findViewers(String roomId) {
         Room room = findById(roomId);
@@ -51,18 +49,6 @@ public class RoomService {
         room.getViewers().remove(viewerId);
         room.setViewCount(room.getViewCount()-1);
     }
-
-    public boolean isEmpty() {
-        if (sequence == 0L) {
-            return true;
-        }
-        return false;
-    }
-
-    public Boolean existById(String roomId) {
-        return memoryRoomRepository.findById(roomId).isPresent();
-    }
-
 
     public boolean isViewerExist(String roomId, String viewerId) {
         return findViewers(roomId).contains(viewerId); // fixme: room 존재 안하면 exception 생길텐데?
