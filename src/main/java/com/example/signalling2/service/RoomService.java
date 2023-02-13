@@ -5,6 +5,7 @@ import com.example.signalling2.exception.ServiceException;
 import com.example.signalling2.exception.errcode.ServiceErrorCode;
 import com.example.signalling2.repository.MemoryRoomRepository;
 import lombok.RequiredArgsConstructor;
+import org.kurento.client.MediaPipeline;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,8 +25,22 @@ public class RoomService {
         return memoryRoomRepository.save(room).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_ROOM));
     }
 
+    public Room createById(String title, String roomId) {
+        ++sequence;
+        if (memoryRoomRepository.findById(roomId).isPresent()) {
+            throw new ServiceException(ServiceErrorCode.ALREADY_IN);
+        }
+        Room room = new Room(title, roomId);
+        return memoryRoomRepository.save(room).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_ROOM));
+    }
+
     public Room findById(String roomId) {
         return memoryRoomRepository.findById(roomId).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_ROOM));
+    }
+
+    public void updateById(MediaPipeline pipeline, String roomId) {
+        Room room = findById(roomId);
+        room.setMediaPipeline(pipeline);
     }
 
     public List<String> findAll() {
@@ -56,6 +71,14 @@ public class RoomService {
 
     public void remove(String roomId) {
         --sequence;
+        memoryRoomRepository.delete(roomId);
+    }
+
+    public void releasePipeline(String roomId) {
+        Room room = findById(roomId);
+        if (room.getMediaPipeline() != null) {
+            room.getMediaPipeline().release();
+        }
         memoryRoomRepository.delete(roomId);
     }
 }

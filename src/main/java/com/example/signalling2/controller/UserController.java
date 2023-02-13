@@ -1,7 +1,7 @@
 package com.example.signalling2.controller;
 
 import com.example.signalling2.domain.UserSession;
-import com.example.signalling2.dto.ResponseDto;
+import com.example.signalling2.dto.Response.ResponseDto;
 import com.example.signalling2.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

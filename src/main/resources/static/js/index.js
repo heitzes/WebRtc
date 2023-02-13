@@ -87,10 +87,12 @@ function viewerResponse(message) {
 
 async function presenter() {
 	// notice: test
-	var userResponse = await axios.post("/signal/room/", {
-	}, {
+	var userResponse = await axios.post("/signal/room/live", {
+		title: "welcome to my room ~"
+	}, { // notice: 이 헤더는 gateway에서 붙여줌 -> 헤더에 access token 넣어서 요청 보내야됨 // 어떻게 gateway에서 권한확인하게하지?
 		headers: {
-			email: "presenter@naver.com"
+			email: "presenter@naver.com",
+			role: "artist"
 		}
 	});
 	if (userResponse.status !== 201) {
@@ -118,10 +120,11 @@ async function presenter() {
 
 async function viewer() {
 	var joinResponse = await axios.post("/signal/room/view", {
+		roomId: "presenter@naver.com" // notice: 스트리머id를 body로 이동
 	}, {
 		headers: {
 			email: "viewer@naver.com", // new viewer
-			roomId: "presenter@naver.com"
+			role: "fan",
 		}
 	});
 	console.log(joinResponse); // 201
@@ -147,10 +150,10 @@ async function viewer() {
 }
 
 async function stop() {
-	var stopResponse = await axios.delete("/signal/room", {
+	var stopResponse = await axios.delete("/signal/room/live", {
 		headers: {
 			email: "presenter@naver.com",
-			roomId: "presenter@naver.com"
+			role: "artist",
 		}
 	});
 	console.log(stopResponse);
@@ -161,7 +164,7 @@ async function leave() {
 	var leaveResponse = await axios.delete("/signal/room/view", {
 		headers: {
 			email: "viewer@naver.com",
-			roomId: "presenter@naver.com"
+			role: "fan",
 		}
 	});
 	console.log(leaveResponse);
