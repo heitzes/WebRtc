@@ -50,6 +50,6 @@ deploy-dev:
   variables:
     ENV: 'dev'
     IMAGE_NAME: 'idol-signal'
-    CI_PROJECT_NAME: 'idol-api-gateway'
+    CI_PROJECT_NAME: 'idol-signal'
   only:
     - main
