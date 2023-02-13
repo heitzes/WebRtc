@@ -91,14 +91,14 @@ async function presenter() {
 		title: "welcome to my room ~"
 	}, { // notice: 이 헤더는 gateway에서 붙여줌 -> 헤더에 access token 넣어서 요청 보내야됨 // 어떻게 gateway에서 권한확인하게하지?
 		headers: {
-			email: "presenter@naver.com",
+			email: "admin@artist",
 			role: "artist"
 		}
 	});
 	if (userResponse.status !== 201) {
 		return;
 	}
-	ws = new WebSocket('ws://' + location.host + '/signal/ws');
+	ws = new WebSocket('wss://' + location.host + '/signal/ws');
 	console.log(location.host);
 	if (!webRtcPeer) {
 		showSpinner(video);
@@ -120,16 +120,16 @@ async function presenter() {
 
 async function viewer() {
 	var joinResponse = await axios.post("/signal/room/view", {
-		roomId: "presenter@naver.com" // notice: 스트리머id를 body로 이동
+		roomId: "admin@artist" // notice: 스트리머id를 body로 이동
 	}, {
 		headers: {
-			email: "viewer@naver.com", // new viewer
+			email: "admin@fan", // new viewer
 			role: "fan",
 		}
 	});
 	console.log(joinResponse); // 201
 
-	ws = new WebSocket('ws://' + location.host + '/signal/ws');
+	ws = new WebSocket('wss://' + location.host + '/signal/ws');
 	console.log(location.host);
 	if (!webRtcPeer) {
 		showSpinner(video);
@@ -152,7 +152,7 @@ async function viewer() {
 async function stop() {
 	var stopResponse = await axios.delete("/signal/room/live", {
 		headers: {
-			email: "presenter@naver.com",
+			email: "admin@artist",
 			role: "artist",
 		}
 	});
@@ -163,7 +163,7 @@ async function stop() {
 async function leave() {
 	var leaveResponse = await axios.delete("/signal/room/view", {
 		headers: {
-			email: "viewer@naver.com",
+			email: "admin@fan",
 			role: "fan",
 		}
 	});
@@ -178,7 +178,7 @@ function onOfferPresenter(error, offerSdp) {
 	// 이 메세지 형식으로 iOS에서 보내주도록 수정완료
 	var message = {
 		id : 'presenter',
-		email : 'presenter@naver.com', // notice: test
+		email : 'admin@artist', // notice: test
 		sdpOffer : offerSdp
 	}
 	sendMessage(message);
@@ -191,7 +191,7 @@ function onOfferViewer(error, offerSdp) {
 	console.info('Invoking SDP offer callback function ' + location.host);
 	var message = {
 		id : 'viewer',
-		email: 'viewer@naver.com',
+		email: 'admin@fan',
 		sdpOffer : offerSdp,
 	}
 	console.info(' ------------------------------------- ');
@@ -203,7 +203,7 @@ function onIceCandidate(candidate) {
 	console.log("Local candidate" + JSON.stringify(candidate));
 	var message = {
 		id : 'onIceCandidate',
-		roomId : 'presenter@naver.com', // notice: test
+		roomId : 'admin@artist', // notice: test
 		candidate : candidate
 	};
 	sendMessage(message);
