@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
 
+    @GetMapping("/test")
+    public ResponseEntity<String> test() {
+        return ResponseDto.ok("test");
+    }
     @GetMapping
     public UserSession getUser(@PathVariable String userId) {
         System.out.println("email received in user controller: " + userId);
