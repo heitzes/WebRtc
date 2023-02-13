@@ -5,7 +5,6 @@ import com.example.signalling2.exception.ServiceException;
 import com.example.signalling2.exception.errcode.ServiceErrorCode;
 import com.example.signalling2.repository.MemoryUserRepository;
 import lombok.RequiredArgsConstructor;
-import org.kurento.client.MediaPipeline;
 import org.kurento.client.WebRtcEndpoint;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
@@ -37,30 +36,20 @@ public class UserService {
         memoryUserRepository.delete(email);
     }
 
-    public void updateById(String email, MediaPipeline pipeline, WebRtcEndpoint ep) {
+    public void updateById(WebRtcEndpoint ep, String email, String roomId) {
         UserSession user = findById(email);
-        user.setMediaPipeline(pipeline);
         user.setWebRtcEndpoint(ep);
-        user.setRoomId(email);
+        user.setRoomId(roomId);
     }
 
     public void updateById(WebSocketSession session, String email) {
         UserSession user = findById(email);
         user.setSession(session);
     }
-    public void releaseViewer(UserSession userSession, String email) {
-        if (userSession.getWebRtcEndpoint() != null) {
-            userSession.getWebRtcEndpoint().release();
-        }
-        memoryUserRepository.delete(email);
-    }
-
-    public void releasePresenter(UserSession userSession, String email) {
-        if (userSession.getMediaPipeline() != null) {
-            userSession.getMediaPipeline().release();
-        }
-        if (userSession.getWebRtcEndpoint() != null) {
-            userSession.getWebRtcEndpoint().release();
+    public void releaseEndpoint(String email) {
+        UserSession user = findById(email);
+        if (user.getWebRtcEndpoint() != null) {
+            user.getWebRtcEndpoint().release();
         }
         memoryUserRepository.delete(email);
     }

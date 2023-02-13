@@ -49,10 +49,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
   public void handleTextMessage(WebSocketSession session, TextMessage message) {
     JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
     String type = jsonMessage.get("id").getAsString();
-    String email = jsonMessage.get("email").getAsString();
     switch (type) {
       case "presenter":
       case "viewer":
+        String email = jsonMessage.get("email").getAsString();
         String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
         sdpICE(session, sdpOffer, email, type);
         break;
@@ -77,7 +77,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
   private void sdpICE(final WebSocketSession session, String sdpOffer, String email, String type) {
     util.saveSession(session, email);
     WebRtcEndpoint webRtcEndpoint = util.getEndpoint(email);
-
     webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
     String sdpAnswer = webRtcEndpoint.processOffer(sdpOffer);
     JsonObject response = ResponseUtil.sdpResponse(type, sdpAnswer);

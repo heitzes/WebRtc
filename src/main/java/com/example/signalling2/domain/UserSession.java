@@ -39,7 +39,6 @@ public class UserSession {
   private String id; // 유저 이메일
   private WebSocketSession session; // 처음엔 비어있음 (api)
   private WebRtcEndpoint webRtcEndpoint; // 처음엔 비어있음
-  private MediaPipeline mediaPipeline; // 처음엔 비어있음
   private String roomId;
 
   public UserSession(WebSocketSession session) {
