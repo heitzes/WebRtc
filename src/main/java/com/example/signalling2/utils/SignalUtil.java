@@ -45,8 +45,7 @@ public class SignalUtil {
     public static void sendMessage(WebSocketSession session, JsonObject response) {
         try {
             session.sendMessage(new TextMessage(response.toString()));
-        } catch (IOException e) {
-            System.out.println("메세지 못보냄 ~ !");
+        } catch (Exception e) {
             // question: 웹소켓 연결이 끊어지면 이미 afterConnectionClosed 가 실행될것임
         }
     }

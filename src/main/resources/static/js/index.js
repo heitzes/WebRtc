@@ -89,7 +89,7 @@ async function presenter() {
 	// notice: test
 	var userResponse = await axios.post("/signal/room/live", {
 		title: "welcome to my room ~"
-	}, { // notice: 이 헤더는 gateway에서 붙여줌 -> 헤더에 access token 넣어서 요청 보내야됨 // 어떻게 gateway에서 권한확인하게하지?
+	}, { // notice: 이 헤더는 gateway에서 붙여줌 -> 헤더에 access token 넣어서 요청 보내야됨
 		headers: {
 			email: "admin@artist",
 			role: "artist"
