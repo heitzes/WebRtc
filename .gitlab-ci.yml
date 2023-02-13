@@ -30,6 +30,8 @@ build:
     when: on_success
     paths:
       - build/libs
+  only:
+    - main
 
 publish:
   stage: publish
@@ -38,6 +40,8 @@ publish:
   variables:
     ENV: "dev"
     IMAGE_NAME: "idol-signal"
+  only:
+    - main
 
 deploy-dev:
   stage: deploy_dev
@@ -47,3 +51,5 @@ deploy-dev:
     ENV: 'dev'
     IMAGE_NAME: 'idol-signal'
     CI_PROJECT_NAME: 'idol-api-gateway'
+  only:
+    - main
