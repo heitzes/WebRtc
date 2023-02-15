@@ -87,16 +87,16 @@ function viewerResponse(message) {
 
 async function presenter() {
 	// notice: test
-	var userResponse = await axios.post("/signal/room/live", {
-		roomId: "admin@artist",
-		title: "welcome to my room ~",
-		profileUrl: "mymymymy"
-	}, { // notice: 이 헤더는 gateway에서 붙여줌 -> 헤더에 access token 넣어서 요청 보내야됨
-		headers: {
-			email: "admin@artist",
+	var userResponse = await axios.post("/signal/room/live", { // notice: body
+		roomId: "admin@artist", // notice: 클라이언트 이메일
+		title: "welcome to my room ~", // notice: 방제 입력
+		profileUrl: "mymymymy" // notice: /feed/user API를 통해 이 url을 미리 가져와야함
+	}, {
+		headers: { // notice: header
+			email: "admin@artist", // notice: 클라이언트 이메일
 		}
 	});
-	if (userResponse.status !== 201) {
+	if (userResponse.status !== 201) { // notice: 201 success
 		return;
 	}
 	ws = new WebSocket('wss://' + location.host + '/signal/ws');
@@ -105,14 +105,14 @@ async function presenter() {
 		showSpinner(video);
 		var options = {
 			localVideo : video,
-			onicecandidate : onIceCandidate
+			onicecandidate : onIceCandidate // notice: ice message (똑같음)
 		}
 		webRtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerSendonly(options,
 				function(error) {
 					if (error) {
 						return console.error(error);
 					}
-					webRtcPeer.generateOffer(onOfferPresenter);
+					webRtcPeer.generateOffer(onOfferPresenter); // notice: sdp message
 				});
 		enableStopLeaveButton();
 	}
@@ -120,11 +120,11 @@ async function presenter() {
 }
 
 async function viewer() {
-	var joinResponse = await axios.post("/signal/room/view", {
-		roomId: "admin@artist" // notice: 스트리머id를 body로 이동
+	var joinResponse = await axios.post("/signal/room/view", { // notice: body
+		roomId: "admin@artist" // notice: 시청하려고 하는 presenter의 email
 	}, {
-		headers: {
-			email: "admin@fan", // new viewer
+		headers: { // notice: header
+			email: "admin@fan", // notice: 클라이언트의 email
 		}
 	});
 	console.log(joinResponse); // 201
@@ -135,21 +135,21 @@ async function viewer() {
 		showSpinner(video);
 		var options = {
 			remoteVideo : video,
-			onicecandidate : onIceCandidate
+			onicecandidate : onIceCandidate // notice: ice message (똑같음)
 		}
 		webRtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerRecvonly(options,
 			function(error) {
 				if (error) {
 					return console.error(error);
 				}
-				this.generateOffer(onOfferViewer);
+				this.generateOffer(onOfferViewer); // notice: sdp message
 			});
 		enableStopLeaveButton();
 	}
 	messageListender(ws);
 }
 
-async function stop() {
+async function stop() { // notice: 연예인이 방송 끝냄
 	var stopResponse = await axios.delete("/signal/room/live", {
 		headers: {
 			email: "admin@artist",
@@ -159,7 +159,7 @@ async function stop() {
 	dispose();
 }
 
-async function leave() {
+async function leave() { // notice: 팬이 방송 그만봄
 	var leaveResponse = await axios.delete("/signal/room/view", {
 		headers: {
 			email: "admin@fan",
@@ -176,8 +176,8 @@ function onOfferPresenter(error, offerSdp) {
 	// 이 메세지 형식으로 iOS에서 보내주도록 수정완료
 	var message = {
 		id : 'presenter',
-		email : 'admin@artist', // notice: test
-		roomId: "admin@artist",
+		email : 'admin@artist',
+		roomId: "admin@artist", // notice: 이거 하나 추가됨
 		sdpOffer : offerSdp
 	}
 	sendMessage(message);
@@ -191,7 +191,7 @@ function onOfferViewer(error, offerSdp) {
 	var message = {
 		id : 'viewer',
 		email: 'admin@fan',
-		roomId: "admin@artist",
+		roomId: "admin@artist", // notice: 이거 하나 추가됨
 		sdpOffer : offerSdp,
 	}
 	console.info(' ------------------------------------- ');
@@ -201,9 +201,9 @@ function onOfferViewer(error, offerSdp) {
 
 function onIceCandidate(candidate) {
 	console.log("Local candidate" + JSON.stringify(candidate));
-	var message = {
+	var message = { // notice: 변한거 없음
 		id : 'onIceCandidate',
-		roomId : 'admin@artist', // notice: test
+		roomId : 'admin@artist', // notice: 방송중인 아티스트의 이메일
 		candidate : candidate
 	};
 	sendMessage(message);

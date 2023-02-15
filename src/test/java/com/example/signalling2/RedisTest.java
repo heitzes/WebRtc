@@ -1,7 +1,6 @@
 package com.example.signalling2;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.RoomRedis;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

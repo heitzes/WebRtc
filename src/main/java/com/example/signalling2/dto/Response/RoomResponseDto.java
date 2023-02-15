@@ -6,6 +6,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class RoomResponseDto {
+    String roomId;
     String title;
     String profileUrl;
     String count;
