@@ -72,6 +72,7 @@ public class RedisRoomController {
 
     @PostMapping("/live")
     public ResponseEntity<String> createRoom(@RequestHeader("email") String email, @RequestBody RoomCreateRequestDto roomDto) throws KurentoException {
+        System.out.println("roomDto: " + roomDto.toString());
         // 유저세션, 방 생성
         userService.createById(email);
         roomService.createById(roomDto);

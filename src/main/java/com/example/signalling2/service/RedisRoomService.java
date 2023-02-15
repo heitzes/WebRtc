@@ -23,6 +23,7 @@ public class RedisRoomService {
 
 
     public RoomRedis createById(RoomCreateRequestDto roomDTO) {
+        System.out.println("roomId: " + roomDTO.getRoomId());
         RoomRedis roomRedis = new RoomRedis(roomDTO.getTitle(), roomDTO.getProfileUrl());
         return roomRepository.save(roomDTO.getRoomId(), roomRedis).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_ROOM));
     }
