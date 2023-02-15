@@ -88,11 +88,12 @@ function viewerResponse(message) {
 async function presenter() {
 	// notice: test
 	var userResponse = await axios.post("/signal/room/live", {
-		title: "welcome to my room ~"
+		roomId: "admin@artist",
+		title: "welcome to my room ~",
+		profileUrl: "mymymymy"
 	}, { // notice: 이 헤더는 gateway에서 붙여줌 -> 헤더에 access token 넣어서 요청 보내야됨
 		headers: {
 			email: "admin@artist",
-			role: "artist"
 		}
 	});
 	if (userResponse.status !== 201) {
@@ -124,7 +125,6 @@ async function viewer() {
 	}, {
 		headers: {
 			email: "admin@fan", // new viewer
-			role: "fan",
 		}
 	});
 	console.log(joinResponse); // 201
@@ -153,7 +153,6 @@ async function stop() {
 	var stopResponse = await axios.delete("/signal/room/live", {
 		headers: {
 			email: "admin@artist",
-			role: "artist",
 		}
 	});
 	console.log(stopResponse);
@@ -164,7 +163,6 @@ async function leave() {
 	var leaveResponse = await axios.delete("/signal/room/view", {
 		headers: {
 			email: "admin@fan",
-			role: "fan",
 		}
 	});
 	console.log(leaveResponse);
@@ -179,6 +177,7 @@ function onOfferPresenter(error, offerSdp) {
 	var message = {
 		id : 'presenter',
 		email : 'admin@artist', // notice: test
+		roomId: "admin@artist",
 		sdpOffer : offerSdp
 	}
 	sendMessage(message);
@@ -192,6 +191,7 @@ function onOfferViewer(error, offerSdp) {
 	var message = {
 		id : 'viewer',
 		email: 'admin@fan',
+		roomId: "admin@artist",
 		sdpOffer : offerSdp,
 	}
 	console.info(' ------------------------------------- ');

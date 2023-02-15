@@ -10,6 +10,7 @@ public enum ServiceErrorCode implements ErrorCode {
     NO_ROOM(HttpStatus.NO_CONTENT, "ROOM not exists."),
     ALREADY_IN(HttpStatus.CONFLICT, "You already in streaming."),
     ALREADY_OUT(HttpStatus.NO_CONTENT, "You already left streaming."),
+    NO_SESSION(HttpStatus.NO_CONTENT, "WebSocket Session Id not exists.")
     ;
 
     private final HttpStatus httpStatus;

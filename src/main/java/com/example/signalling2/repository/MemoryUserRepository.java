@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
-public class MemoryUserRepository implements UserRepository{
+public class MemoryUserRepository implements UserRepository {
     private final ConcurrentHashMap<String, UserSession> users = new ConcurrentHashMap<>();
     private long sequence = 0L;
     @Override
