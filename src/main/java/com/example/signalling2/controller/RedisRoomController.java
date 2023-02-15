@@ -29,7 +29,7 @@ public class RedisRoomController {
     private final MediaService mediaService;
     private final SignalUtil util;
 
-    @GetMapping("/rooms")
+    @GetMapping("/list")
     public ResponseEntity<Object> getRooms() {
 
         return ResponseDto.ok(roomService.findAll());
