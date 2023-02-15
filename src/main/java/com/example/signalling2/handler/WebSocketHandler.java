@@ -49,16 +49,16 @@ public class WebSocketHandler extends TextWebSocketHandler {
   public void handleTextMessage(WebSocketSession session, TextMessage message) {
     JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
     String type = jsonMessage.get("id").getAsString();
+    String roomId = jsonMessage.get("roomId").getAsString();
     switch (type) {
       case "presenter":
       case "viewer":
         String email = jsonMessage.get("email").getAsString();
         String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
-        sdpICE(session, sdpOffer, email, type);
+        sdpICE(session, sdpOffer, roomId, email, type);
         break;
       case "onIceCandidate": {
         JsonObject candidate = jsonMessage.get("candidate").getAsJsonObject();
-        String roomId = jsonMessage.get("roomId").getAsString();
         onIceCandidate(candidate, roomId);
         break;
       }
@@ -70,12 +70,12 @@ public class WebSocketHandler extends TextWebSocketHandler {
   @Override // study: CustomExceptionWebSocketHandlerDecorator 의 afterConnectionClosed 에서 catch
   public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
     // fixme: ws connection이 비정상적으로 끊기면 어칼거임?
-    System.out.println("의도치 않게 웹소켓 연결이 끊어진 경우");
-    //todo: 끊어졌을 때 세션/방 삭제
+    System.out.println(session.getId() + " : 의도치 않게 웹소켓 연결이 끊어진 경우");
+    util.deleteSession(session.getId());
   }
 
-  private void sdpICE(final WebSocketSession session, String sdpOffer, String email, String type) {
-    util.saveSession(session, email);
+  private void sdpICE(final WebSocketSession session, String sdpOffer, String roomId, String email, String type) {
+    util.saveSession(session, roomId, email);
     WebRtcEndpoint webRtcEndpoint = util.getEndpoint(email);
     webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
     String sdpAnswer = webRtcEndpoint.processOffer(sdpOffer);

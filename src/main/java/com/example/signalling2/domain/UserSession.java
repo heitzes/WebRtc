@@ -36,15 +36,13 @@ import java.io.IOException;
 public class UserSession {
 
   @Id
-  private String id; // 유저 이메일
+  private String id; // 유저 이메일 -> 유저 세션 아이디로 바꿔야할지도 (커넥션 끊어지는거 대비)
+  private String sessionId;
   private WebSocketSession session; // 처음엔 비어있음 (api)
   private WebRtcEndpoint webRtcEndpoint; // 처음엔 비어있음
+  private MediaPipeline mediaPipeline;
   private String roomId;
 
-  public UserSession(WebSocketSession session) {
-    this.session = session;
-    this.id = session.getId();
-  }
   public UserSession(String email) {
     this.id = email;
   }

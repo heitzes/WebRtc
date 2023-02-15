@@ -1,59 +1,59 @@
 package com.example.signalling2.controller;
-import com.example.signalling2.domain.Room;
+
 import com.example.signalling2.domain.UserSession;
-import com.example.signalling2.dto.Request.RoomDTO;
+import com.example.signalling2.dto.Request.RoomCreateRequestDto;
+import com.example.signalling2.dto.Request.RoomJoinRequestDto;
 import com.example.signalling2.dto.Response.ResponseDto;
 import com.example.signalling2.exception.KurentoException;
 import com.example.signalling2.service.MediaService;
-import com.example.signalling2.service.RoomService;
+import com.example.signalling2.service.RedisRoomService;
 import com.example.signalling2.service.UserService;
 import com.example.signalling2.utils.ResponseUtil;
 import com.example.signalling2.utils.SignalUtil;
 import com.google.gson.JsonObject;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.kurento.client.MediaPipeline;
 import org.kurento.client.WebRtcEndpoint;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/room")
 @RequiredArgsConstructor
-public class RoomController {
+public class RedisRoomController {
 
-    private final RoomService roomService;
+    private final RedisRoomService roomService;
     private final UserService userService;
     private final MediaService mediaService;
     private final SignalUtil util;
 
     @GetMapping("/rooms")
-    public List<String> getRooms() {
-        return roomService.findAll();
+    public ResponseEntity<Object> getRooms() {
+
+        return ResponseDto.ok(roomService.findAll());
     }
 
 
     /** 방을 있는지 확인하고 방에 참가 */
     @PostMapping("/view")
-    public ResponseEntity<String> joinRoom(@RequestHeader("email") String email, @RequestBody RoomDTO roomDTO) throws KurentoException {
-        String roomId = roomDTO.getRoomId();
-
+    public ResponseEntity<String> joinRoom(@RequestHeader("email") String email, @RequestBody RoomJoinRequestDto joinDto) throws KurentoException {
+        String roomId = joinDto.getRoomId();
         // 유저세션 생성 및 방 조회
         userService.createById(email);
-        Room room = roomService.findById(roomId);
+        roomService.findById(roomId);
 
         // 엔드포인트 생성/연결 (여기서 발생한 예외는 webSocket 예외로 처리)
         UserSession presenterSession = userService.findById(roomId);
-        MediaPipeline pipeline = room.getMediaPipeline();
+        MediaPipeline pipeline = presenterSession.getMediaPipeline();
         WebRtcEndpoint nextWebRtc = mediaService.createEndpoint(pipeline);
         mediaService.connectEndpoint(presenterSession.getWebRtcEndpoint(), nextWebRtc);
 
         // 정보 업데이트
-        userService.updateById(nextWebRtc, email, roomId);
+        userService.updateById(nextWebRtc, roomId, email);
         roomService.addViewer(roomId, email);
+
         return ResponseDto.ok(email);
     }
 
@@ -61,21 +61,20 @@ public class RoomController {
     public ResponseEntity<String> leaveRoom(@RequestHeader("email") String email) {
         UserSession user = userService.findById(email);
         String roomId = user.getRoomId();
+        String sessionId = user.getSessionId();
 
         if (roomService.isViewerExist(roomId, email)) { // viewer라면
             roomService.subViewer(roomId, email);
-            userService.releaseEndpoint(email);
+            userService.leaveRoom(sessionId, email);
         }
         return ResponseDto.ok(email);
     }
 
     @PostMapping("/live")
-    public ResponseEntity<String> createRoom(@RequestHeader("email") String email, @RequestBody RoomDTO roomDTO) throws KurentoException { // notice: test 코드임
-        String title = roomDTO.getTitle(); // todo: 방 제목
-
+    public ResponseEntity<String> createRoom(@RequestHeader("email") String email, @RequestBody RoomCreateRequestDto roomDto) throws KurentoException {
         // 유저세션, 방 생성
         userService.createById(email);
-        roomService.createById(title, email);
+        roomService.createById(roomDto);
 
         // 미디어 파이프라인, 엔드포인트 생성 (여기서 발생한 예외는 webSocket 예외로 처리)
         MediaPipeline pipeline = mediaService.createPipeline();
@@ -83,7 +82,7 @@ public class RoomController {
 
         // 정보 업데이트
         userService.updateById(presenterWebRtc, email, email);
-        roomService.updateById(pipeline, email);
+        userService.updateById(pipeline, email);
 
         return ResponseDto.created(email);
     }
@@ -100,20 +99,20 @@ public class RoomController {
     @DeleteMapping("/live")
     public ResponseEntity<String> deleteRoom(@RequestHeader("email") String email) {
 
-        ArrayList<String> viewers = roomService.findViewers(email);
+        Set<String> viewers = roomService.findViewers(email); // refactor:
         for (String viewerId : viewers) {
-          UserSession viewer = userService.findById(viewerId);
-          JsonObject response = ResponseUtil.messageResponse("stop", "");
-          util.sendMessage(viewer.getSession(), response); // 실패시 webSocketException 발생, exceptionHandler가 catch한다
-          userService.releaseEndpoint(email);
+            UserSession viewer = userService.findById(viewerId);
+            JsonObject response = ResponseUtil.messageResponse("stop", "");
+            util.sendMessage(viewer.getSession(), response); // 실패시 webSocketException 발생, exceptionHandler가 catch한다
+            userService.leaveRoom(viewer.getSession().getId(), email);
         }
 
-        // release media pipeline and endpoint
-        roomService.releasePipeline(email);
-        userService.releaseEndpoint(email);
+        // release media pipeline/endpoint and remove user
+        UserSession presenter = userService.findById(email);
+        userService.deleteRoom(presenter.getSessionId(), email);
 
         // remove room
-        roomService.remove(email);
+        roomService.delete(email);
         return ResponseDto.ok(email);
     }
 }
