@@ -12,7 +12,7 @@ import java.io.Serializable;
 @ToString
 @AllArgsConstructor
 public class SessionRedis implements Serializable {
-    private String email;
     private String roomId;
+    private String email;
 
 }
