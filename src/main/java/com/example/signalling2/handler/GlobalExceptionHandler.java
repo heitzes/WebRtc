@@ -17,6 +17,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleServiceException(ServiceException e) {
         System.out.println("service exception handled");
         ServiceErrorCode serviceErrorCode = e.getServiceErrorCode();
+        System.out.println(serviceErrorCode.getMessage());
         return ResponseEntity.status(serviceErrorCode.getHttpStatus())
                 .body(serviceErrorCode.getMessage());
     }
@@ -25,6 +26,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleKurentoException(KurentoException e) {
         System.out.println("kurento exception handled");
         KurentoErrCode kurentoErrCode = e.getKurentoErrCode();
+        System.out.println(kurentoErrCode.getMessage());
         return ResponseEntity.status(kurentoErrCode.getHttpStatus())
                 .body(kurentoErrCode.getMessage());
     }
