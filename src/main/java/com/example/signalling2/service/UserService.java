@@ -70,7 +70,7 @@ public class UserService {
     }
 
     public void deleteRoom(String sessionId, String email) {
-        releasePipeline(email);
+//        releasePipeline(email);
         releaseEndpoint(email);
         deleteById(email);
         deleteSessionById(sessionId);

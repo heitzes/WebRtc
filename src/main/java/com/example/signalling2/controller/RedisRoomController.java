@@ -13,6 +13,7 @@ import com.example.signalling2.utils.SignalUtil;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.kurento.client.MediaPipeline;
+import org.kurento.client.RecorderEndpoint;
 import org.kurento.client.WebRtcEndpoint;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +37,9 @@ public class RedisRoomController {
     }
 
 
-    /** 방을 있는지 확인하고 방에 참가 */
+    /**
+     * 방을 있는지 확인하고 방에 참가
+     */
     @PostMapping("/view")
     public ResponseEntity<String> joinRoom(@RequestHeader("email") String email, @RequestBody RoomJoinRequestDto joinDto) throws KurentoException {
         String roomId = joinDto.getRoomId();
@@ -79,6 +82,11 @@ public class RedisRoomController {
         // 미디어 파이프라인, 엔드포인트 생성 (여기서 발생한 예외는 webSocket 예외로 처리)
         MediaPipeline pipeline = mediaService.createPipeline();
         WebRtcEndpoint presenterWebRtc = mediaService.createEndpoint(pipeline);
+        RecorderEndpoint recorderEndpoint = mediaService.createRecorderEndpoint(pipeline, roomDto);
+
+        // 레코더 엔드포인트 연결, 녹화 시작
+        mediaService.connectRecorderEndpoint(presenterWebRtc, recorderEndpoint);
+        mediaService.beginRecording(recorderEndpoint);
 
         // 정보 업데이트
         userService.updateById(presenterWebRtc, email, email);
@@ -95,7 +103,7 @@ public class RedisRoomController {
      * -> stop 기능이 webSocket 핸들러 안에서 구현될 필요가 없음 & webSocket 핸들러 안에서 예외가 생기는 상황을 피하고자 컨트롤러로 옮김
      * BUT, webSocket 핸들러에서 webSocket 커넥션이 끊어졌을 때 stop 기능을 수행했었는데,
      * stop 기능을 컨트롤러로 옮기면 커넥션 끊어진 상황에 대한 대처가 필요.
-     * */
+     */
     @DeleteMapping("/live")
     public ResponseEntity<String> deleteRoom(@RequestHeader("email") String email) {
 
