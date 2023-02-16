@@ -36,62 +36,63 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 @RequiredArgsConstructor
 public class WebSocketHandler extends TextWebSocketHandler {
 
-  private final Gson gson;
-  private final SignalUtil util;
-  @Override
-  public void afterConnectionEstablished(WebSocketSession session)  {
-    JsonObject response = new JsonObject();
-    response.addProperty("session-id", session.getId());
-    SignalUtil.sendMessage(session, response);
-  }
+    private final Gson gson;
+    private final SignalUtil util;
 
-  @Override // study: CustomExceptionWebSocketHandlerDecorator 의 handleTextMessage 에서 catch
-  public void handleTextMessage(WebSocketSession session, TextMessage message) {
-    JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
-    String type = jsonMessage.get("id").getAsString();
-    String roomId = jsonMessage.get("roomId").getAsString();
-    switch (type) {
-      case "presenter":
-      case "viewer":
-        String email = jsonMessage.get("email").getAsString();
-        String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
-        sdpICE(session, sdpOffer, roomId, email, type);
-        break;
-      case "onIceCandidate": {
-        JsonObject candidate = jsonMessage.get("candidate").getAsJsonObject();
-        onIceCandidate(candidate, roomId);
-        break;
-      }
-      default:
-        break;
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        JsonObject response = new JsonObject();
+        response.addProperty("session-id", session.getId());
+        SignalUtil.sendMessage(session, response);
     }
-  }
 
-  @Override // study: CustomExceptionWebSocketHandlerDecorator 의 afterConnectionClosed 에서 catch
-  public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
-    // fixme: ws connection이 비정상적으로 끊기면 어칼거임?
-    System.out.println(session.getId() + " : 의도치 않게 웹소켓 연결이 끊어진 경우");
-    util.deleteSession(session.getId());
-  }
-
-  private void sdpICE(final WebSocketSession session, String sdpOffer, String roomId, String email, String type) {
-    util.saveSession(session, roomId, email);
-    WebRtcEndpoint webRtcEndpoint = util.getEndpoint(email);
-    webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
-    String sdpAnswer = webRtcEndpoint.processOffer(sdpOffer);
-    JsonObject response = ResponseUtil.sdpResponse(type, sdpAnswer);
-
-    synchronized (session) {
-      util.sendMessage(session, response);
+    @Override // study: CustomExceptionWebSocketHandlerDecorator 의 handleTextMessage 에서 catch
+    public void handleTextMessage(WebSocketSession session, TextMessage message) {
+        JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
+        String type = jsonMessage.get("id").getAsString();
+        String roomId = jsonMessage.get("roomId").getAsString();
+        switch (type) {
+            case "presenter":
+            case "viewer":
+                String email = jsonMessage.get("email").getAsString();
+                String sdpOffer = jsonMessage.getAsJsonPrimitive("sdpOffer").getAsString();
+                sdpICE(session, sdpOffer, roomId, email, type);
+                break;
+            case "onIceCandidate": {
+                JsonObject candidate = jsonMessage.get("candidate").getAsJsonObject();
+                onIceCandidate(candidate, roomId);
+                break;
+            }
+            default:
+                break;
+        }
     }
-    webRtcEndpoint.gatherCandidates();
-  }
 
-  private void onIceCandidate(JsonObject candidate, String roomId) {
-    UserSession streamerSession = util.getUser(roomId);
-    IceCandidate cand =
-            new IceCandidate(candidate.get("candidate").getAsString(), candidate.get("sdpMid")
-                    .getAsString(), candidate.get("sdpMLineIndex").getAsInt());
-    streamerSession.addCandidate(cand);
-  }
+    @Override // study: CustomExceptionWebSocketHandlerDecorator 의 afterConnectionClosed 에서 catch
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
+        // fixme: ws connection이 비정상적으로 끊기면 어칼거임?
+        System.out.println(session.getId() + " : 의도치 않게 웹소켓 연결이 끊어진 경우");
+        util.deleteSession(session.getId());
+    }
+
+    private void sdpICE(final WebSocketSession session, String sdpOffer, String roomId, String email, String type) {
+        util.saveSession(session, roomId, email);
+        WebRtcEndpoint webRtcEndpoint = util.getEndpoint(email);
+        webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
+        String sdpAnswer = webRtcEndpoint.processOffer(sdpOffer);
+        JsonObject response = ResponseUtil.sdpResponse(type, sdpAnswer);
+
+        synchronized (session) {
+            util.sendMessage(session, response);
+        }
+        webRtcEndpoint.gatherCandidates();
+    }
+
+    private void onIceCandidate(JsonObject candidate, String roomId) {
+        UserSession streamerSession = util.getUser(roomId);
+        IceCandidate cand =
+                new IceCandidate(candidate.get("candidate").getAsString(), candidate.get("sdpMid")
+                        .getAsString(), candidate.get("sdpMLineIndex").getAsInt());
+        streamerSession.addCandidate(cand);
+    }
 }

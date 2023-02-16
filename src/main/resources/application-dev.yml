@@ -10,3 +10,7 @@ spring:
     host: 10.140.113.197
     port: 6379
     database: 4
+
+upload:
+  server:
+    url: http://10.140.113.213:9090/media/upload

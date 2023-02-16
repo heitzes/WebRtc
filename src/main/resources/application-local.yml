@@ -9,3 +9,7 @@ spring:
     host: localhost
     port: 6379
     database: 0
+
+upload:
+  server:
+    url: http://localhost:9090/media/upload
