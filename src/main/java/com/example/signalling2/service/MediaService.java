@@ -48,6 +48,7 @@ public class MediaService {
     public Pair<String, String> createPipeline() throws KurentoException {
         // 미디어 파이프라인, 엔드포인트 생성
         try {
+            System.out.println("kurento client sessionId: " + kurento.getSessionId());
             Request<JsonObject> request = JsonRpcUtil.pipelineRequest();
             Response<JsonElement> response = kurento.sendJsonRpcRequest(request);
             JsonObject result = response.getResult().getAsJsonObject();
