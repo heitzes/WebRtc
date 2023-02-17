@@ -1,20 +1,22 @@
 package com.example.signalling2.controller;
 
-import com.example.signalling2.domain.UserSession;
+import com.example.signalling2.domain.Room;
+import com.example.signalling2.domain.Session;
+import com.example.signalling2.domain.User;
 import com.example.signalling2.dto.Request.RoomCreateRequestDto;
 import com.example.signalling2.dto.Request.RoomJoinRequestDto;
 import com.example.signalling2.dto.Response.ResponseDto;
 import com.example.signalling2.exception.KurentoException;
 import com.example.signalling2.service.MediaService;
-import com.example.signalling2.service.RedisRoomService;
+import com.example.signalling2.service.RoomService;
+import com.example.signalling2.service.SessionService;
 import com.example.signalling2.service.UserService;
 import com.example.signalling2.utils.ResponseUtil;
-import com.example.signalling2.utils.SignalUtil;
+import com.example.signalling2.utils.UserSessionUtil;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
-import org.kurento.client.MediaPipeline;
 import org.kurento.client.RecorderEndpoint;
-import org.kurento.client.WebRtcEndpoint;
+import org.springframework.data.util.Pair;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,12 +25,13 @@ import java.util.Set;
 @RestController
 @RequestMapping("/room")
 @RequiredArgsConstructor
-public class RedisRoomController {
+public class RoomController {
 
-    private final RedisRoomService roomService;
+    private final RoomService roomService;
     private final UserService userService;
     private final MediaService mediaService;
-    private final SignalUtil util;
+    private final SessionService sessionService;
+    private final UserSessionUtil util;
 
     @GetMapping("/list")
     public ResponseEntity<Object> getRooms() {
@@ -43,18 +46,20 @@ public class RedisRoomController {
     @PostMapping("/view")
     public ResponseEntity<String> joinRoom(@RequestHeader("email") String email, @RequestBody RoomJoinRequestDto joinDto) throws KurentoException {
         String roomId = joinDto.getRoomId();
+
         // 유저세션 생성 및 방 조회
-        userService.createById(email);
-        roomService.findById(roomId);
+        userService.createById(email, roomId);
+        Room room = roomService.findById(roomId);
 
         // 엔드포인트 생성/연결 (여기서 발생한 예외는 webSocket 예외로 처리)
-        UserSession presenterSession = userService.findById(roomId);
-        MediaPipeline pipeline = presenterSession.getMediaPipeline();
-        WebRtcEndpoint nextWebRtc = mediaService.createEndpoint(pipeline);
-        mediaService.connectEndpoint(presenterSession.getWebRtcEndpoint(), nextWebRtc);
+        User artist = userService.findById(roomId);
+        String pipeline = room.getMediaPipeline();
+        String kurentoId = room.getKurentoSessionId();
+        String endpoint = mediaService.createEndpoint(pipeline, kurentoId);
+        mediaService.connectEndpoint(artist.getWebRtcEndpoint(), endpoint, kurentoId);
 
         // 정보 업데이트
-        userService.updateById(nextWebRtc, roomId, email);
+        userService.updateEndpointById(endpoint, email);
         roomService.addViewer(roomId, email);
 
         return ResponseDto.ok(email);
@@ -62,35 +67,41 @@ public class RedisRoomController {
 
     @DeleteMapping("/view")
     public ResponseEntity<String> leaveRoom(@RequestHeader("email") String email) {
-        UserSession user = userService.findById(email);
+        User user = userService.findById(email);
+        Room room = roomService.findById(user.getRoomId());
         String roomId = user.getRoomId();
         String sessionId = user.getSessionId();
 
         if (roomService.isViewerExist(roomId, email)) { // viewer라면
             roomService.subViewer(roomId, email);
-            userService.leaveRoom(sessionId, email);
+            userService.leaveRoom(room.getKurentoSessionId(), email);
+            sessionService.deleteSessionById(sessionId);
         }
         return ResponseDto.ok(email);
     }
 
     @PostMapping("/live")
     public ResponseEntity<String> createRoom(@RequestHeader("email") String email, @RequestBody RoomCreateRequestDto roomDto) throws KurentoException {
+
         // 유저세션, 방 생성
-        userService.createById(email);
+        userService.createById(email, email);
         roomService.createById(roomDto);
 
         // 미디어 파이프라인, 엔드포인트 생성 (여기서 발생한 예외는 webSocket 예외로 처리)
-        MediaPipeline pipeline = mediaService.createPipeline();
-        WebRtcEndpoint presenterWebRtc = mediaService.createEndpoint(pipeline);
+        Pair<String, String> result = mediaService.createPipeline();
+        String pipeline = result.getFirst();
+        String kurentoId = result.getSecond();
+        String endpoint = mediaService.createEndpoint(pipeline, kurentoId);
+        System.out.println("api endpoint: " + endpoint);
         RecorderEndpoint recorderEndpoint = mediaService.createRecorderEndpoint(pipeline, roomDto);
 
         // 레코더 엔드포인트 연결, 녹화 시작
-        mediaService.connectRecorderEndpoint(presenterWebRtc, recorderEndpoint);
+        mediaService.connectRecorderEndpoint(endpoint, recorderEndpoint);
         mediaService.beginRecording(recorderEndpoint);
 
         // 정보 업데이트
-        userService.updateById(presenterWebRtc, email, email);
-        userService.updateById(pipeline, email);
+        userService.updateEndpointById(endpoint, email);
+        roomService.updateById(pipeline, kurentoId, email);
 
         return ResponseDto.created(email);
     }
@@ -106,18 +117,21 @@ public class RedisRoomController {
      */
     @DeleteMapping("/live")
     public ResponseEntity<String> deleteRoom(@RequestHeader("email") String email) {
-
+        Room room = roomService.findById(email);
         Set<String> viewers = roomService.findViewers(email); // refactor:
-        for (String viewerId : viewers) {
-            UserSession viewer = userService.findById(viewerId);
+        for (String viewerId : viewers) { // notice: viewerId는 이메일
+            User viewer = userService.findById(viewerId);
+            Session viewerSession = sessionService.findSessionById(viewer.getSessionId());
             JsonObject response = ResponseUtil.messageResponse("stop", "");
-            util.sendMessage(viewer.getSession(), response); // 실패시 webSocketException 발생, exceptionHandler가 catch한다
-            userService.leaveRoom(viewer.getSession().getId(), email);
+            util.sendMessage(viewerSession.getSession(), response);
+            userService.leaveRoom(room.getKurentoSessionId(), viewerId);
+            sessionService.deleteSessionById(viewer.getSessionId());
         }
 
         // release media pipeline/endpoint and remove user
-        UserSession presenter = userService.findById(email);
-        userService.deleteRoom(presenter.getSessionId(), email);
+        User presenter = userService.findById(email);
+        userService.leaveRoom(room.getKurentoSessionId(), email);
+        sessionService.deleteSessionById(presenter.getSessionId());
 
         // remove room
         roomService.delete(email);

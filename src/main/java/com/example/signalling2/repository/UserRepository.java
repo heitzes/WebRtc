@@ -1,14 +1,8 @@
 package com.example.signalling2.repository;
 
-import com.example.signalling2.domain.UserSession;
+import com.example.signalling2.domain.User;
+import org.springframework.data.repository.CrudRepository;
 
-import java.util.List;
-import java.util.Optional;
+public interface UserRepository extends CrudRepository<User, String> {
 
-public interface UserRepository {
-    public Optional<UserSession> findById(String id);
-    public Optional<UserSession> save(UserSession userSession);
-    public List<String> findAll();
-    public long getSequence();
-    public void delete(String id);
 }

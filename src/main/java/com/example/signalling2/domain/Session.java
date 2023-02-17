@@ -18,40 +18,23 @@
 package com.example.signalling2.domain;
 
 import com.google.gson.JsonObject;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.kurento.client.IceCandidate;
 import org.kurento.client.MediaPipeline;
 import org.kurento.client.WebRtcEndpoint;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
-import lombok.Getter;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.redis.core.RedisHash;
+
 import java.io.IOException;
 
 @Getter
 @Setter
-@NoArgsConstructor
-public class UserSession {
-
+@AllArgsConstructor
+public class Session {
   @Id
-  private String id; // 유저 이메일 -> 유저 세션 아이디로 바꿔야할지도 (커넥션 끊어지는거 대비)
-  private String sessionId;
-  private WebSocketSession session; // 처음엔 비어있음 (api)
-  private WebRtcEndpoint webRtcEndpoint; // 처음엔 비어있음
-  private MediaPipeline mediaPipeline;
-  private String roomId;
-
-  public UserSession(String email) {
-    this.id = email;
-  }
-
-  public void addCandidate(IceCandidate candidate) {
-    webRtcEndpoint.addIceCandidate(candidate);
-  }
-
-  public void sendMessage(JsonObject message) throws IOException {
-    session.sendMessage(new TextMessage(message.toString()));
-  }
+  private String id; // refactor: sessionId로 변경 (왜냐면 이제 Session은 웹소켓 관리용으로 쓰일테니)
+  private WebSocketSession session; // 어쩔수 없이 signal 서버에서 관리 해야됨
+  private String roomId; // 들어가 있는 roomId
+  private String email; // refactor: 이 웹소켓 세션 주인의 email
 }
