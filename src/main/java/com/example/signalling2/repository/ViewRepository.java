@@ -8,7 +8,7 @@ import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
-public class RedisViewRepository {
+public class ViewRepository {
     private final RedisTemplate<String, String> redisViewTemplate;
 
     public Boolean find(String roomId, String viewerId) {
