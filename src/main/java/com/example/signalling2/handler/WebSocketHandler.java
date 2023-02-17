@@ -47,7 +47,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         UserSessionUtil.sendMessage(session, response);
     }
 
-    @Override // study: CustomExceptionWebSocketHandlerDecorator 의 handleTextMessage 에서 catch
+    @Override // study: CustomExceptionWebSocketHandlerDecorator의 handleTextMessage 에서 catch
     public void handleTextMessage(WebSocketSession session, TextMessage message) {
         JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
         String type = jsonMessage.get("id").getAsString();
