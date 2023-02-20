@@ -16,8 +16,10 @@ public class HttpClientUtils {
 
         try (var res = httpClient.execute(httpGet)) {
             var resEntity = res.getEntity();
+            var entityStr = EntityUtils.toString(resEntity);
+
             httpClient.close();
-            return EntityUtils.toString(resEntity);
+            return entityStr;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -31,8 +33,10 @@ public class HttpClientUtils {
 
         try (var res = httpClient.execute(postReq)) {
             var resEntity = res.getEntity();
+            var entityStr = EntityUtils.toString(resEntity);
+
             httpClient.close();
-            return EntityUtils.toString(resEntity);
+            return entityStr;
         } catch (IOException e) {
             e.printStackTrace();
         }
