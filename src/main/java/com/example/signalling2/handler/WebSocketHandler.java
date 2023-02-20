@@ -74,6 +74,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
 
     private void sdpICE(final WebSocketSession session, String sdpOffer, String roomId, String email, String type) {
+        System.out.println("session-id: " + session.getId());
         serviceUtil.saveSession(session, roomId, email); // notice: webSocket 저장
         WebRtcEndpoint webRtcEndpoint = serviceUtil.getEndpoint(email); // notice: 복원
         webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));

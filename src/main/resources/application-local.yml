@@ -4,7 +4,7 @@ server:
 spring:
   # kurento config
   kurento:
-    host: ws://localhost:8888/kurento # aws
+    host: ws://10.140.113.213:8888/kurento # aws
   redis:
     host: localhost
     port: 6379
