@@ -8,32 +8,37 @@ import com.example.signalling2.exception.errcode.KurentoErrCode;
 import com.example.signalling2.utils.HttpClientUtils;
 import com.google.gson.GsonBuilder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.kurento.client.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * to handle exceptions related to kms
- *
+ * <p>
  * mediaPipeline, webRtcEndpoint를 같은 kurento Client Session을 사용하여 생성하기 위해
  * Json-RPC Request로 요청을 보냅니다.
- *
+ * <p>
  * connect, release 등 mediaPipeline/WebRtcEndpoint 클래스의 메서드를 실행할 때
  * 객체의 id(String)를 매개변수로하여 Json-RPC API를 통해 실행합니다.
  * 즉, 시그널 서버에서 더이상 미디어 서버 관련 객체를 저장하고 있을 필요가 없습니다.
- *
+ * <p>
  * 미디어 객체 복구가 필요한 경우 (ex. WebRtcEndpoint에 IceCandidateFound Event Listener 추가해야하는 경우 등)
  * WebSocketUtil 클래스에 있는 메서드를 사용하여 객체를 복구할 수 있습니다.
- *
  */
-@RestController
+@Slf4j
+@Service
 @RequiredArgsConstructor
 public class MediaService {
 
     private static final String RECORDING_PATH = "file:///video/";
     private static final String EXT_MP4 = ".mp4";
+    private static final int MEDIA_COUNT = 2;   // audio & video
     private final KurentoClient kurento;
 
     @Value("${upload.server.url}")
@@ -63,6 +68,7 @@ public class MediaService {
 
     /**
      * WebRtcEndpoint 객체 복원
+     *
      * @param endpoint
      * @return WebRtcEndpoint
      */
@@ -75,8 +81,19 @@ public class MediaService {
         }
     }
 
+    public RecorderEndpoint getRecorderEndpoint(String endpoint) {
+        try {
+            return kurento.getById(endpoint, RecorderEndpoint.class);
+        } catch (ServiceException e) {
+            log.error(e.getMessage());
+        }
+
+        return null;
+    }
+
     /**
      * MediaPipeline 객체 복원
+     *
      * @param pipeline
      * @return MediaPipeline
      */
@@ -93,25 +110,33 @@ public class MediaService {
         try {
             final var uri = RECORDING_PATH + roomDto.getRoomId() + EXT_MP4;
             final var recorderEp = new RecorderEndpoint.Builder(pipeline, uri).withMediaProfile(MediaProfileSpecType.MP4).build();
+            final var endCount = new AtomicInteger(0);
 
             recorderEp.addMediaFlowInStateChangedListener(e -> {
                 if (e.getState().equals(MediaFlowState.NOT_FLOWING)) {
-                    recorderEp.stopAndWait(new Continuation<>() {
-                        @Override
-                        public void onSuccess(Void result) {
-                            // make request entity (json)
-                            var json = new GsonBuilder().create().toJson(roomDto, RoomCreateRequestDto.class);
-                            var entity = new StringEntity(json, ContentType.APPLICATION_JSON);
 
-                            // send upload request to upload server (VM) & release MediaPipeline
-                            HttpClientUtils.sendPostRequest(uploadServerUrl, entity);
-                            releasePipeline(pipeline);
-                        }
+                    endCount.set(endCount.get() + 1);
+                    if (endCount.get() == MEDIA_COUNT) {
+                        recorderEp.stopAndWait(new Continuation<>() {
+                            @Override
+                            public void onSuccess(Void result) {
+                                // make request entity (json)
+                                log.info("[{}] success to upload media", recorderEp.getId());
+                                var json = new GsonBuilder().create().toJson(roomDto, RoomCreateRequestDto.class);
+                                var entity = new StringEntity(json, ContentType.APPLICATION_JSON);
 
-                        @Override
-                        public void onError(Throwable cause) throws Exception {
-                        }
-                    });
+                                // send upload request to upload server (VM) & release MediaPipeline
+                                HttpClientUtils.sendPostRequest(uploadServerUrl, entity);
+
+                                releaseRecorderEndpoint(recorderEp.getId());
+                                releasePipeline(pipeline);
+                            }
+
+                            @Override
+                            public void onError(Throwable cause) throws Exception {
+                            }
+                        });
+                    }
                 }
             });
 
@@ -125,6 +150,15 @@ public class MediaService {
         try {
             WebRtcEndpoint webRtcEndpoint = getEndpoint(endpoint);
             webRtcEndpoint.release();
+        } catch (Exception e) {
+            throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);
+        }
+    }
+
+    public void releaseRecorderEndpoint(String recorderEndpointId) {
+        try {
+            RecorderEndpoint recorderEndpoint = getRecorderEndpoint(recorderEndpointId);
+            recorderEndpoint.release();
         } catch (Exception e) {
             throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);
         }
