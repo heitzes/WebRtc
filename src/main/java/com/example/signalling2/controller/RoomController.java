@@ -36,7 +36,6 @@ public class RoomController {
 
     @GetMapping("/list")
     public ResponseEntity<Object> getRooms() {
-
         return ResponseDto.ok(roomService.findAll());
     }
 
@@ -55,7 +54,7 @@ public class RoomController {
         // 엔드포인트 생성/연결 (여기서 발생한 예외는 webSocket 예외로 처리)
         User artist = userService.findById(roomId);
         WebRtcEndpoint presenterEndpoint = mediaService.getEndpoint(artist.getWebRtcEndpoint());
-        WebRtcEndpoint viewerEndpoint = mediaService.createEndpoint(room.getMediaPipeline());
+        WebRtcEndpoint viewerEndpoint = mediaService.createEndpoint(email, room.getMediaPipeline());
         mediaService.connectEndpoint(presenterEndpoint, viewerEndpoint);
 
         // 정보 업데이트
@@ -88,8 +87,8 @@ public class RoomController {
         roomService.createById(roomDto);
 
         // 미디어 파이프라인, 엔드포인트 생성 (여기서 발생한 예외는 webSocket 예외로 처리)
-        MediaPipeline pipeline = mediaService.createPipeline();
-        WebRtcEndpoint endpoint = mediaService.createEndpoint(pipeline.getId());
+        MediaPipeline pipeline = mediaService.createPipeline(email);
+        WebRtcEndpoint endpoint = mediaService.createEndpoint(email, pipeline.getId());
         RecorderEndpoint recorderEndpoint = mediaService.createRecorderEndpoint(pipeline, roomDto);
 
         // 레코더 엔드포인트 연결, 녹화 시작

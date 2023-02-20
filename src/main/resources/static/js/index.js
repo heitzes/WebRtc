@@ -100,7 +100,7 @@ async function presenter() {
 		return;
 	}
 	ws = new WebSocket('wss://' + location.host + '/signal/ws');
-	console.log(location.host);
+	messageListender(ws);
 	if (!webRtcPeer) {
 		showSpinner(video);
 		var options = {
@@ -116,7 +116,6 @@ async function presenter() {
 				});
 		enableStopLeaveButton();
 	}
-	messageListender(ws);
 }
 
 async function viewer() {
@@ -130,7 +129,7 @@ async function viewer() {
 	console.log(joinResponse); // 201
 
 	ws = new WebSocket('wss://' + location.host + '/signal/ws');
-	console.log(location.host);
+	messageListender(ws);
 	if (!webRtcPeer) {
 		showSpinner(video);
 		var options = {
@@ -146,7 +145,6 @@ async function viewer() {
 			});
 		enableStopLeaveButton();
 	}
-	messageListender(ws);
 }
 
 async function stop() { // notice: 연예인이 방송 끝냄

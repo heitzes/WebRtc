@@ -39,19 +39,23 @@ public class MediaService {
     @Value("${upload.server.url}")
     private String uploadServerUrl;
 
-    public MediaPipeline createPipeline() throws KurentoException {
+    public MediaPipeline createPipeline(String email) throws KurentoException {
         // 미디어 파이프라인, 엔드포인트 생성
         try {
-            return kurento.createMediaPipeline();
+            MediaPipeline mediaPipeline = kurento.createMediaPipeline();
+            mediaPipeline.setName(email + "_Pipeline");
+            return mediaPipeline;
         } catch (Exception e) { // change unknown err to webSocketException
             throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
         }
     }
 
-    public WebRtcEndpoint createEndpoint(String pipelineId) throws KurentoException {
+    public WebRtcEndpoint createEndpoint(String email, String pipelineId) throws KurentoException {
         try {
             MediaPipeline pipeline = getPipeline(pipelineId);
-            return new WebRtcEndpoint.Builder(pipeline).build();
+            WebRtcEndpoint webRtcEndpoint = new WebRtcEndpoint.Builder(pipeline).build();
+            webRtcEndpoint.setName(email + "_WebEndpoint");
+            return webRtcEndpoint;
         } catch (Exception e) {
             throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);
         }
