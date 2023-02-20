@@ -100,7 +100,6 @@ public class RoomController {
         userService.updateEndpointById(endpoint.getId(), email);
         roomService.updateById(pipeline.getId(), email);
 
-
         return ResponseDto.created(email);
     }
 

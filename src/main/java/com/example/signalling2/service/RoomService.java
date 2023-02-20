@@ -53,13 +53,6 @@ public class RoomService {
         viewRepository.delete(roomId);
     }
 
-//    public void releasePipeline(String roomId) {
-//        Room room = findById(roomId);
-//        if (room.getMediaPipeline() != null) {
-//            mediaService.releaseMedia(room.getMediaPipeline(), room.getKurentoSessionId());
-//        }
-//    }
-
     public Set<String> findViewers(String roomId) {
         return viewRepository.findAll(roomId);
     }

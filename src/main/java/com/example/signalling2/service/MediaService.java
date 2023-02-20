@@ -1,5 +1,6 @@
 package com.example.signalling2.service;
 
+import com.example.signalling2.domain.Room;
 import com.example.signalling2.dto.Request.RoomCreateRequestDto;
 import com.example.signalling2.exception.KurentoException;
 import com.example.signalling2.exception.ServiceException;
@@ -84,7 +85,6 @@ public class MediaService {
         }
     }
 
-
     public RecorderEndpoint createRecorderEndpoint(MediaPipeline pipeline, final RoomCreateRequestDto roomDto) throws KurentoException {
         try {
             final var uri = RECORDING_PATH + roomDto.getRoomId() + EXT_MP4;
@@ -101,7 +101,7 @@ public class MediaService {
 
                             // send upload request to upload server (VM) & release MediaPipeline
                             HttpClientUtils.sendPostRequest(uploadServerUrl, entity);
-                            pipeline.release();
+                            releasePipeline(pipeline);
                         }
 
                         @Override
@@ -117,10 +117,18 @@ public class MediaService {
         }
     }
 
-    public void releaseMedia(String endpoint) {
+    public void releaseEndpoint(String endpoint) {
         try {
             WebRtcEndpoint webRtcEndpoint = getEndpoint(endpoint);
             webRtcEndpoint.release();
+        } catch (Exception e) {
+            throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);
+        }
+    }
+
+    public void releasePipeline(MediaPipeline pipeline) {
+        try {
+            pipeline.release();
         } catch (Exception e) {
             throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
         }
@@ -130,7 +138,7 @@ public class MediaService {
         try {
             artistEp.connect(fanEp);
         } catch (Exception e) {
-            throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
+            throw new KurentoException(KurentoErrCode.KMS_NO_CONNECT);
         }
     }
 

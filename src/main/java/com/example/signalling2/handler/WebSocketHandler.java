@@ -45,7 +45,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         ServiceUtil.sendMessage(session, response);
     }
 
-    @Override // study: CustomExceptionWebSocketHandlerDecorator의 handleTextMessage 에서 catch
+    @Override
     public void handleTextMessage(WebSocketSession session, TextMessage message) {
         JsonObject jsonMessage = gson.fromJson(message.getPayload(), JsonObject.class);
         String type = jsonMessage.get("id").getAsString();
@@ -67,9 +67,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    @Override // study: CustomExceptionWebSocketHandlerDecorator 의 afterConnectionClosed 에서 catch
+    @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
-        // fixme: ws connection이 비정상적으로 끊기면 어칼거임?
         System.out.println(session.getId() + " : 의도치 않게 웹소켓 연결이 끊어진 경우");
         serviceUtil.deleteSession(session.getId());
     }

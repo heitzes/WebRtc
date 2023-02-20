@@ -7,8 +7,6 @@ import com.example.signalling2.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -57,7 +55,7 @@ public class UserService {
     public void releaseEndpoint(String email) {
         User user = findById(email);
         if (user.getWebRtcEndpoint() != null) {
-            mediaService.releaseMedia(user.getWebRtcEndpoint());
+            mediaService.releaseEndpoint(user.getWebRtcEndpoint());
         }
     }
 }
