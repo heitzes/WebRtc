@@ -24,11 +24,10 @@ public class RoomService {
         return roomRepository.save(room);
     }
 
-    public void updateById(String pipeline, String kurentoSessionId, String roomId) {
+    public void updateById(String pipeline, String roomId) {
         Room room = findById(roomId);
         room.setMediaPipeline(pipeline);
-        room.setKurentoSessionId(kurentoSessionId);
-        roomRepository.save(room); // notice: update
+        roomRepository.save(room);
     }
 
     public RoomResponseDto createRoomResponseDto(String roomId, Room room) {

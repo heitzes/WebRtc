@@ -4,11 +4,13 @@ import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.User;
 import com.example.signalling2.domain.Session;
 import com.example.signalling2.exception.ServiceException;
+import com.example.signalling2.service.MediaService;
 import com.example.signalling2.service.RoomService;
 import com.example.signalling2.service.SessionService;
 import com.example.signalling2.service.UserService;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
+import org.kurento.client.WebRtcEndpoint;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -30,15 +32,16 @@ import java.util.Set;
  */
 @Component
 @RequiredArgsConstructor
-public class UserSessionUtil {
+public class ServiceUtil {
     private final RoomService roomService;
     private final UserService userService;
+    private final MediaService mediaService;
     private final SessionService sessionService;
 
-    public String getEndpointId(String email) {
+    public WebRtcEndpoint getEndpoint(String email) {
         try {
             User user = userService.findById(email);
-            return user.getWebRtcEndpoint();
+            return mediaService.getEndpoint(user.getWebRtcEndpoint());
         } catch (Exception e) {
             return null; // fixme
         }
@@ -60,21 +63,19 @@ public class UserSessionUtil {
             Session userSession = sessionService.findSessionById(sessionId);
             String email = userSession.getEmail(); // 웹소켓 끊어진 사람의 email
             String roomId = userSession.getRoomId(); // 웹소켓 끊어진 사람이 속한 room
-            Room room = roomService.findById(roomId);
-            String kurentoId = room.getKurentoSessionId();
             if (email.equals(roomId)) { // notice: presenter이 끊김
                 Set<String> viewers = roomService.findViewers(email); // 방에 속한 시청자들
                 for (String viewerId : viewers) { // notice: viewerId는 이메일
                     User viewer = userService.findById(viewerId);
-                    userService.leaveRoom(kurentoId, viewerId);
+                    userService.leaveRoom(viewerId);
                     sessionService.deleteSessionById(viewer.getSessionId());
                 }
-                userService.leaveRoom(kurentoId, email);
+                userService.leaveRoom(email);
                 sessionService.deleteSessionById(sessionId);
                 roomService.delete(email);
             } else { // notice: viewer가 끊김
                 roomService.subViewer(roomId, email); // 방에서 뷰어 없애주고
-                userService.leaveRoom(kurentoId, email);
+                userService.leaveRoom(email);
                 sessionService.deleteSessionById(sessionId);
             }
         } catch(ServiceException e) {

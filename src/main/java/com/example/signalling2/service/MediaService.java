@@ -2,21 +2,15 @@ package com.example.signalling2.service;
 
 import com.example.signalling2.dto.Request.RoomCreateRequestDto;
 import com.example.signalling2.exception.KurentoException;
+import com.example.signalling2.exception.ServiceException;
 import com.example.signalling2.exception.errcode.KurentoErrCode;
 import com.example.signalling2.utils.HttpClientUtils;
-import com.example.signalling2.utils.JsonRpcUtil;
-import com.example.signalling2.utils.KurentoUtil;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.kurento.client.*;
-import org.kurento.jsonrpc.message.Request;
-import org.kurento.jsonrpc.message.Response;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.util.Pair;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -40,41 +34,59 @@ public class MediaService {
     private static final String RECORDING_PATH = "file:///video/";
     private static final String EXT_MP4 = ".mp4";
     private final KurentoClient kurento;
-    private final KurentoUtil kurentoUtil;
 
     @Value("${upload.server.url}")
     private String uploadServerUrl;
 
-    public Pair<String, String> createPipeline() throws KurentoException {
+    public MediaPipeline createPipeline() throws KurentoException {
         // 미디어 파이프라인, 엔드포인트 생성
         try {
-            System.out.println("kurento client sessionId: " + kurento.getSessionId());
-            Request<JsonObject> request = JsonRpcUtil.pipelineRequest();
-            Response<JsonElement> response = kurento.sendJsonRpcRequest(request);
-            JsonObject result = response.getResult().getAsJsonObject();
-            String pipeline = result.get("value").getAsString();
-            String kurentoSessionId = response.getSessionId();
-            return Pair.of(pipeline, kurentoSessionId);
+            return kurento.createMediaPipeline();
         } catch (Exception e) { // change unknown err to webSocketException
             throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
         }
     }
 
-    public String createEndpoint(String pipeline, String sessionId) throws KurentoException {
+    public WebRtcEndpoint createEndpoint(String pipelineId) throws KurentoException {
         try {
-            Request<JsonObject> request = JsonRpcUtil.endpointRequest(pipeline, sessionId);
-            Response<JsonElement> response = kurento.sendJsonRpcRequest(request);
-            JsonObject result = response.getResult().getAsJsonObject();
-            String endpoint = result.get("value").getAsString();
-            return endpoint;
+            MediaPipeline pipeline = getPipeline(pipelineId);
+            return new WebRtcEndpoint.Builder(pipeline).build();
         } catch (Exception e) {
             throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);
         }
     }
 
-    public RecorderEndpoint createRecorderEndpoint(String pipelineId, final RoomCreateRequestDto roomDto) throws KurentoException {
+    /**
+     * WebRtcEndpoint 객체 복원
+     * @param endpoint
+     * @return WebRtcEndpoint
+     */
+    public WebRtcEndpoint getEndpoint(String endpoint) {
         try {
-            MediaPipeline pipeline = kurentoUtil.getPipeline(pipelineId); // notice: pipeline 복원
+            WebRtcEndpoint webRtcEndpoint = kurento.getById(endpoint, WebRtcEndpoint.class);
+            return webRtcEndpoint;
+        } catch (ServiceException e) {
+            return null;  // fixme: 없으면 어칼건데?
+        }
+    }
+
+    /**
+     * MediaPipeline 객체 복원
+     * @param pipeline
+     * @return MediaPipeline
+     */
+    public MediaPipeline getPipeline(String pipeline) {
+        try {
+            MediaPipeline mediaPipeline = kurento.getById(pipeline, MediaPipeline.class);
+            return mediaPipeline;
+        } catch (Exception e) {
+            return null; // fixme: 없으면 어쩔꺼?
+        }
+    }
+
+
+    public RecorderEndpoint createRecorderEndpoint(MediaPipeline pipeline, final RoomCreateRequestDto roomDto) throws KurentoException {
+        try {
             final var uri = RECORDING_PATH + roomDto.getRoomId() + EXT_MP4;
             final var recorderEp = new RecorderEndpoint.Builder(pipeline, uri).withMediaProfile(MediaProfileSpecType.MP4).build();
 
@@ -105,31 +117,29 @@ public class MediaService {
         }
     }
 
-    public void connectEndpoint(String artistEp, String fanEp, String kurentoId) throws KurentoException {
+    public void releaseMedia(String endpoint) {
         try {
-            Request<JsonObject> request = JsonRpcUtil.connectRequest(artistEp, fanEp, kurentoId);
-            kurento.sendJsonRpcRequest(request);
+            WebRtcEndpoint webRtcEndpoint = getEndpoint(endpoint);
+            webRtcEndpoint.release();
         } catch (Exception e) {
-            throw new KurentoException(KurentoErrCode.KMS_NO_CONNECT);
+            throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
         }
     }
 
-    public void connectRecorderEndpoint(String endpointId, RecorderEndpoint recorderEp) throws KurentoException {
+    public void connectEndpoint(WebRtcEndpoint artistEp, WebRtcEndpoint fanEp) {
         try {
-            WebRtcEndpoint presenterEp = kurentoUtil.getEndpoint(endpointId); // notice: ep 복원
+            artistEp.connect(fanEp);
+        } catch (Exception e) {
+            throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
+        }
+    }
+
+    public void connectRecorderEndpoint(WebRtcEndpoint presenterEp, RecorderEndpoint recorderEp) throws KurentoException {
+        try {
             presenterEp.connect(recorderEp, MediaType.AUDIO);
             presenterEp.connect(recorderEp, MediaType.VIDEO);
         } catch (Exception e) {
             throw new KurentoException(KurentoErrCode.KMS_NO_CONNECT);
-        }
-    }
-
-    public void releaseMedia(String mediaObject, String kurentoId) {
-        try {
-            Request<JsonObject> request = JsonRpcUtil.releaseRequest(mediaObject, kurentoId);
-            kurento.sendJsonRpcRequest(request);
-        } catch (Exception e) {
-            throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
         }
     }
 

@@ -99,7 +99,7 @@ async function presenter() {
 	if (userResponse.status !== 201) { // notice: 201 success
 		return;
 	}
-	ws = new WebSocket('wss://' + location.host + '/signal/ws');
+	ws = new WebSocket('ws://' + location.host + '/signal/ws');
 	console.log(location.host);
 	if (!webRtcPeer) {
 		showSpinner(video);
@@ -129,7 +129,7 @@ async function viewer() {
 	});
 	console.log(joinResponse); // 201
 
-	ws = new WebSocket('wss://' + location.host + '/signal/ws');
+	ws = new WebSocket('ws://' + location.host + '/signal/ws');
 	console.log(location.host);
 	if (!webRtcPeer) {
 		showSpinner(video);

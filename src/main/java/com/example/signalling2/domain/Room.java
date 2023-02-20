@@ -17,5 +17,4 @@ public class Room {
     @NonNull
     private String profileUrl;
     private String mediaPipeline; // refactor: 추가하기
-    private String kurentoSessionId; // refactor: 추가하기
 }

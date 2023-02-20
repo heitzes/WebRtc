@@ -49,15 +49,15 @@ public class UserService {
         return userRepository.save(user); // notice: update
     }
 
-    public void leaveRoom(String kurentoId, String email) {
-        releaseEndpoint(kurentoId, email);
+    public void leaveRoom(String email) {
+        releaseEndpoint(email);
         deleteById(email);
     }
 
-    public void releaseEndpoint(String kurentoId, String email) {
+    public void releaseEndpoint(String email) {
         User user = findById(email);
         if (user.getWebRtcEndpoint() != null) {
-            mediaService.releaseMedia(user.getWebRtcEndpoint(), kurentoId);
+            mediaService.releaseMedia(user.getWebRtcEndpoint());
         }
     }
 }

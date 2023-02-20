@@ -17,9 +17,8 @@
 
 package com.example.signalling2.handler;
 
-import com.example.signalling2.utils.KurentoUtil;
 import com.example.signalling2.utils.ResponseUtil;
-import com.example.signalling2.utils.UserSessionUtil;
+import com.example.signalling2.utils.ServiceUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
@@ -37,14 +36,13 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 public class WebSocketHandler extends TextWebSocketHandler {
 
     private final Gson gson;
-    private final UserSessionUtil userSessionUtil;
-    private final KurentoUtil kurentoUtil;
+    private final ServiceUtil serviceUtil;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         JsonObject response = new JsonObject();
         response.addProperty("session-id", session.getId());
-        UserSessionUtil.sendMessage(session, response);
+        ServiceUtil.sendMessage(session, response);
     }
 
     @Override // study: CustomExceptionWebSocketHandlerDecorator의 handleTextMessage 에서 catch
@@ -73,26 +71,24 @@ public class WebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
         // fixme: ws connection이 비정상적으로 끊기면 어칼거임?
         System.out.println(session.getId() + " : 의도치 않게 웹소켓 연결이 끊어진 경우");
-        userSessionUtil.deleteSession(session.getId());
+        serviceUtil.deleteSession(session.getId());
     }
 
     private void sdpICE(final WebSocketSession session, String sdpOffer, String roomId, String email, String type) {
-        userSessionUtil.saveSession(session, roomId, email); // notice: webSocket 저장
-        String endpoint = userSessionUtil.getEndpointId(email);
-        WebRtcEndpoint webRtcEndpoint = kurentoUtil.getEndpoint(endpoint); // notice: 복원
+        serviceUtil.saveSession(session, roomId, email); // notice: webSocket 저장
+        WebRtcEndpoint webRtcEndpoint = serviceUtil.getEndpoint(email); // notice: 복원
         webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
         String sdpAnswer = webRtcEndpoint.processOffer(sdpOffer);
 
         JsonObject response = ResponseUtil.sdpResponse(type, sdpAnswer);
         synchronized (session) {
-            userSessionUtil.sendMessage(session, response);
+            serviceUtil.sendMessage(session, response);
         }
         webRtcEndpoint.gatherCandidates();
     }
 
     private void onIceCandidate(JsonObject candidate, String roomId) {
-        String endpoint = userSessionUtil.getEndpointId(roomId);
-        WebRtcEndpoint artistEndpoint = kurentoUtil.getEndpoint(endpoint);
+        WebRtcEndpoint artistEndpoint = serviceUtil.getEndpoint(roomId);
         IceCandidate cand =
                 new IceCandidate(candidate.get("candidate").getAsString(), candidate.get("sdpMid")
                         .getAsString(), candidate.get("sdpMLineIndex").getAsInt());

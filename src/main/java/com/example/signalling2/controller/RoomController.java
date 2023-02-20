@@ -12,11 +12,12 @@ import com.example.signalling2.service.RoomService;
 import com.example.signalling2.service.SessionService;
 import com.example.signalling2.service.UserService;
 import com.example.signalling2.utils.ResponseUtil;
-import com.example.signalling2.utils.UserSessionUtil;
+import com.example.signalling2.utils.ServiceUtil;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
+import org.kurento.client.MediaPipeline;
 import org.kurento.client.RecorderEndpoint;
-import org.springframework.data.util.Pair;
+import org.kurento.client.WebRtcEndpoint;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,7 +32,7 @@ public class RoomController {
     private final UserService userService;
     private final MediaService mediaService;
     private final SessionService sessionService;
-    private final UserSessionUtil util;
+    private final ServiceUtil util;
 
     @GetMapping("/list")
     public ResponseEntity<Object> getRooms() {
@@ -53,13 +54,12 @@ public class RoomController {
 
         // 엔드포인트 생성/연결 (여기서 발생한 예외는 webSocket 예외로 처리)
         User artist = userService.findById(roomId);
-        String pipeline = room.getMediaPipeline();
-        String kurentoId = room.getKurentoSessionId();
-        String endpoint = mediaService.createEndpoint(pipeline, kurentoId);
-        mediaService.connectEndpoint(artist.getWebRtcEndpoint(), endpoint, kurentoId);
+        WebRtcEndpoint presenterEndpoint = mediaService.getEndpoint(artist.getWebRtcEndpoint());
+        WebRtcEndpoint viewerEndpoint = mediaService.createEndpoint(room.getMediaPipeline());
+        mediaService.connectEndpoint(presenterEndpoint, viewerEndpoint);
 
         // 정보 업데이트
-        userService.updateEndpointById(endpoint, email);
+        userService.updateEndpointById(viewerEndpoint.getId(), email);
         roomService.addViewer(roomId, email);
 
         return ResponseDto.ok(email);
@@ -69,12 +69,12 @@ public class RoomController {
     public ResponseEntity<String> leaveRoom(@RequestHeader("email") String email) {
         User user = userService.findById(email);
         Room room = roomService.findById(user.getRoomId());
-        String roomId = user.getRoomId();
+        String roomId = room.getId();
         String sessionId = user.getSessionId();
 
         if (roomService.isViewerExist(roomId, email)) { // viewer라면
             roomService.subViewer(roomId, email);
-            userService.leaveRoom(room.getKurentoSessionId(), email);
+            userService.leaveRoom(email);
             sessionService.deleteSessionById(sessionId);
         }
         return ResponseDto.ok(email);
@@ -88,11 +88,8 @@ public class RoomController {
         roomService.createById(roomDto);
 
         // 미디어 파이프라인, 엔드포인트 생성 (여기서 발생한 예외는 webSocket 예외로 처리)
-        Pair<String, String> result = mediaService.createPipeline();
-        String pipeline = result.getFirst();
-        String kurentoId = result.getSecond();
-        String endpoint = mediaService.createEndpoint(pipeline, kurentoId);
-        System.out.println("api endpoint: " + endpoint);
+        MediaPipeline pipeline = mediaService.createPipeline();
+        WebRtcEndpoint endpoint = mediaService.createEndpoint(pipeline.getId());
         RecorderEndpoint recorderEndpoint = mediaService.createRecorderEndpoint(pipeline, roomDto);
 
         // 레코더 엔드포인트 연결, 녹화 시작
@@ -100,8 +97,9 @@ public class RoomController {
         mediaService.beginRecording(recorderEndpoint);
 
         // 정보 업데이트
-        userService.updateEndpointById(endpoint, email);
-        roomService.updateById(pipeline, kurentoId, email);
+        userService.updateEndpointById(endpoint.getId(), email);
+        roomService.updateById(pipeline.getId(), email);
+
 
         return ResponseDto.created(email);
     }
@@ -124,13 +122,13 @@ public class RoomController {
             Session viewerSession = sessionService.findSessionById(viewer.getSessionId());
             JsonObject response = ResponseUtil.messageResponse("stop", "");
             util.sendMessage(viewerSession.getSession(), response);
-            userService.leaveRoom(room.getKurentoSessionId(), viewerId);
+            userService.leaveRoom(viewerId);
             sessionService.deleteSessionById(viewer.getSessionId());
         }
 
         // release media pipeline/endpoint and remove user
         User presenter = userService.findById(email);
-        userService.leaveRoom(room.getKurentoSessionId(), email);
+        userService.leaveRoom(email);
         sessionService.deleteSessionById(presenter.getSessionId());
 
         // remove room
