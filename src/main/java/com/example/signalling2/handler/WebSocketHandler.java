@@ -69,12 +69,12 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
-        System.out.println(session.getId() + " : 의도치 않게 웹소켓 연결이 끊어진 경우");
+        log.info("[{}] - 의도치 않게 웹소켓 연결이 끊어진 경우", session.getId());
         serviceUtil.deleteSession(session.getId());
     }
 
     private void sdpICE(final WebSocketSession session, String sdpOffer, String roomId, String email, String type) {
-        System.out.println("session-id: " + session.getId());
+        log.info("[{}] - sdpICE", session.getId());
         serviceUtil.saveSession(session, roomId, email); // notice: webSocket 저장
         WebRtcEndpoint webRtcEndpoint = serviceUtil.getEndpoint(email); // notice: 복원
         webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
