@@ -59,6 +59,11 @@ public class MediaService {
         try {
             MediaPipeline pipeline = getPipeline(pipelineId);
             WebRtcEndpoint webRtcEndpoint = new WebRtcEndpoint.Builder(pipeline).build();
+            webRtcEndpoint.setMinVideoSendBandwidth(300);
+            webRtcEndpoint.setMaxVideoSendBandwidth(300);
+            webRtcEndpoint.setMinVideoRecvBandwidth(300);
+            webRtcEndpoint.setMaxVideoRecvBandwidth(300);
+
             webRtcEndpoint.setName(email + "_WebEndpoint");
             return webRtcEndpoint;
         } catch (Exception e) {
