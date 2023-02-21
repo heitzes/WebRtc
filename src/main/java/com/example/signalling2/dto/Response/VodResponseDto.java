@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class VodResponseDto {
-    String uuid;
+    String liveSessionId;
     String roomId;
     String title;
     String profileUrl;

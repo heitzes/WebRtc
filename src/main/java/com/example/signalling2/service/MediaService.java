@@ -113,7 +113,7 @@ public class MediaService {
 
     public RecorderEndpoint createRecorderEndpoint(MediaPipeline pipeline, Room room) throws KurentoException {
         try {
-            VodResponseDto vodResponseDto = new VodResponseDto(room.getUuid(), room.getId(), room.getTitle(), room.getTitle());
+            VodResponseDto vodResponseDto = new VodResponseDto(room.getUuid(), room.getId(), room.getTitle(), room.getProfileUrl());
             final var uri = RECORDING_PATH + vodResponseDto.getRoomId() + EXT_MP4;
             final var recorderEp = new RecorderEndpoint.Builder(pipeline, uri).withMediaProfile(MediaProfileSpecType.MP4).build();
             final var endCount = new AtomicInteger(0);
