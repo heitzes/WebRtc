@@ -113,15 +113,17 @@ public class MediaService {
             final var endCount = new AtomicInteger(0);
 
             recorderEp.addMediaFlowInStateChangedListener(e -> {
-                if (e.getState().equals(MediaFlowState.NOT_FLOWING)) {
+                log.info("[{}] - Media flow in state changed {}", recorderEp.getId(), e.getState());
 
+                if (e.getState().equals(MediaFlowState.NOT_FLOWING)) {
                     endCount.set(endCount.get() + 1);
+
                     if (endCount.get() == MEDIA_COUNT) {
                         recorderEp.stopAndWait(new Continuation<>() {
                             @Override
                             public void onSuccess(Void result) {
                                 // make request entity (json)
-                                log.info("[{}] success to upload media", recorderEp.getId());
+                                log.info("[{}] - Success to store media", recorderEp.getId());
                                 var json = new GsonBuilder().create().toJson(roomDto, RoomCreateRequestDto.class);
                                 var entity = new StringEntity(json, ContentType.APPLICATION_JSON);
 
@@ -190,6 +192,16 @@ public class MediaService {
     }
 
     public void beginRecording(RecorderEndpoint recorderEp) {
-        recorderEp.record();
+        recorderEp.record(new Continuation<>() {
+            @Override
+            public void onSuccess(Void result) throws Exception {
+                log.info("[{}] - Success to Start Recording", recorderEp.getId());
+            }
+
+            @Override
+            public void onError(Throwable cause) throws Exception {
+                log.info("[{}] - Fail to Start Recording", recorderEp.getId());
+            }
+        });
     }
 }
