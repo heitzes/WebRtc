@@ -57,12 +57,13 @@ public class MediaService {
 
     public WebRtcEndpoint createEndpoint(String email, String pipelineId) throws KurentoException {
         try {
+            final int bandWidth = 1000;
             MediaPipeline pipeline = getPipeline(pipelineId);
             WebRtcEndpoint webRtcEndpoint = new WebRtcEndpoint.Builder(pipeline).build();
-            webRtcEndpoint.setMinVideoSendBandwidth(300);
-            webRtcEndpoint.setMaxVideoSendBandwidth(300);
-            webRtcEndpoint.setMinVideoRecvBandwidth(300);
-            webRtcEndpoint.setMaxVideoRecvBandwidth(300);
+            webRtcEndpoint.setMinVideoSendBandwidth(bandWidth);
+            webRtcEndpoint.setMaxVideoSendBandwidth(bandWidth);
+            webRtcEndpoint.setMinVideoRecvBandwidth(bandWidth);
+            webRtcEndpoint.setMaxVideoRecvBandwidth(bandWidth);
 
             webRtcEndpoint.setName(email + "_WebEndpoint");
             return webRtcEndpoint;
