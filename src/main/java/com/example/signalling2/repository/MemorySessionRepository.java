@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class MemorySessionRepository {
-    private final ConcurrentHashMap<String, Session> users = new ConcurrentHashMap<>();
+    private final static ConcurrentHashMap<String, Session> users = new ConcurrentHashMap<>();
 
     public Optional<Session> findById(String id) {
         return Optional.ofNullable(users.get(id));

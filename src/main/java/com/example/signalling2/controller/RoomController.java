@@ -6,6 +6,7 @@ import com.example.signalling2.domain.User;
 import com.example.signalling2.dto.Request.RoomCreateRequestDto;
 import com.example.signalling2.dto.Request.RoomJoinRequestDto;
 import com.example.signalling2.dto.Response.ResponseDto;
+import com.example.signalling2.dto.Response.RoomResponseDto;
 import com.example.signalling2.exception.KurentoException;
 import com.example.signalling2.service.MediaService;
 import com.example.signalling2.service.RoomService;
@@ -21,6 +22,8 @@ import org.kurento.client.WebRtcEndpoint;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.Set;
 
 @RestController
@@ -36,15 +39,15 @@ public class RoomController {
 
     @GetMapping("/list")
     public ResponseEntity<Object> getRooms() {
-        return ResponseDto.ok(roomService.findAll());
+        ArrayList<RoomResponseDto> responseDto = roomService.findAll();
+        return ResponseDto.ok(responseDto);
     }
-
 
     /**
      * 방을 있는지 확인하고 방에 참가
      */
     @PostMapping("/view")
-    public ResponseEntity<String> joinRoom(@RequestHeader("email") String email, @RequestBody RoomJoinRequestDto joinDto) throws KurentoException {
+    public ResponseEntity<RoomResponseDto> joinRoom(@RequestHeader("email") String email, @RequestBody RoomJoinRequestDto joinDto) throws KurentoException {
         String roomId = joinDto.getRoomId();
 
         // 유저세션 생성 및 방 조회
@@ -61,11 +64,14 @@ public class RoomController {
         userService.updateEndpointById(viewerEndpoint.getId(), email);
         roomService.addViewer(roomId, email);
 
-        return ResponseDto.ok(email);
+        // response
+        RoomResponseDto roomResponseDto = roomService.createRoomResponseDto(roomId, room);
+
+        return ResponseDto.created(roomResponseDto);
     }
 
     @DeleteMapping("/view")
-    public ResponseEntity<String> leaveRoom(@RequestHeader("email") String email) {
+    public ResponseEntity<Void> leaveRoom(@RequestHeader("email") String email) {
         User user = userService.findById(email);
         Room room = roomService.findById(user.getRoomId());
         String roomId = room.getId();
@@ -76,20 +82,20 @@ public class RoomController {
             userService.leaveRoom(email);
             sessionService.deleteSessionById(sessionId);
         }
-        return ResponseDto.ok(email);
+        return ResponseDto.noContent();
     }
 
     @PostMapping("/live")
-    public ResponseEntity<String> createRoom(@RequestHeader("email") String email, @RequestBody RoomCreateRequestDto roomDto) throws KurentoException {
+    public ResponseEntity<RoomResponseDto> createRoom(@RequestHeader("email") String email, @RequestBody @Valid RoomCreateRequestDto roomDto) throws KurentoException {
 
         // 유저세션, 방 생성
         userService.createById(email, email);
-        roomService.createById(roomDto);
+        Room room = roomService.createById(roomDto);
 
         // 미디어 파이프라인, 엔드포인트 생성 (여기서 발생한 예외는 webSocket 예외로 처리)
         MediaPipeline pipeline = mediaService.createPipeline(email);
         WebRtcEndpoint endpoint = mediaService.createEndpoint(email, pipeline.getId());
-        RecorderEndpoint recorderEndpoint = mediaService.createRecorderEndpoint(pipeline, roomDto);
+        RecorderEndpoint recorderEndpoint = mediaService.createRecorderEndpoint(pipeline, room);
 
         // 레코더 엔드포인트 연결, 녹화 시작
         mediaService.connectRecorderEndpoint(endpoint, recorderEndpoint);
@@ -99,7 +105,9 @@ public class RoomController {
         userService.updateEndpointById(endpoint.getId(), email);
         roomService.updateById(pipeline.getId(), email);
 
-        return ResponseDto.created(email);
+        // response
+        RoomResponseDto responseDto = roomService.createRoomResponseDto(email, room);
+        return ResponseDto.created(responseDto);
     }
 
     /**
@@ -112,25 +120,26 @@ public class RoomController {
      * stop 기능을 컨트롤러로 옮기면 커넥션 끊어진 상황에 대한 대처가 필요.
      */
     @DeleteMapping("/live")
-    public ResponseEntity<String> deleteRoom(@RequestHeader("email") String email) {
-        Room room = roomService.findById(email);
+    public ResponseEntity<Void> deleteRoom(@RequestHeader("email") String email) {
+        roomService.findById(email); // check room exists
+        String presenterSessionId = userService.getSessionIdById(email); // check presenter session-id exists
+
         Set<String> viewers = roomService.findViewers(email); // refactor:
         for (String viewerId : viewers) { // notice: viewerId는 이메일
-            User viewer = userService.findById(viewerId);
-            Session viewerSession = sessionService.findSessionById(viewer.getSessionId());
+            String viewerSessionId = userService.getSessionIdById(viewerId); // check null
+            Session viewerSession = sessionService.findSessionById(viewerSessionId);
             JsonObject response = ResponseUtil.messageResponse("stop", "");
             util.sendMessage(viewerSession.getSession(), response);
             userService.leaveRoom(viewerId);
-            sessionService.deleteSessionById(viewer.getSessionId());
+            sessionService.deleteSessionById(viewerSessionId);
         }
 
         // release media pipeline/endpoint and remove user
-        User presenter = userService.findById(email);
         userService.leaveRoom(email);
-        sessionService.deleteSessionById(presenter.getSessionId());
+        sessionService.deleteSessionById(presenterSessionId);
 
         // remove room
         roomService.delete(email);
-        return ResponseDto.ok(email);
+        return ResponseDto.noContent();
     }
 }

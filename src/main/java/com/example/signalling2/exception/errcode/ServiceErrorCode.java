@@ -6,11 +6,11 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum ServiceErrorCode implements ErrorCode {
-    NO_USER(HttpStatus.NO_CONTENT, "User not exists."),
-    NO_ROOM(HttpStatus.NO_CONTENT, "ROOM not exists."),
+    NO_USER(HttpStatus.BAD_REQUEST, "User not exists."),
+    NO_ROOM(HttpStatus.BAD_REQUEST, "ROOM not exists."),
     ALREADY_IN(HttpStatus.CONFLICT, "You already in streaming."),
-    ALREADY_OUT(HttpStatus.NO_CONTENT, "You already left streaming."),
-    NO_SESSION(HttpStatus.NO_CONTENT, "WebSocket Session Id not exists.")
+    ALREADY_OUT(HttpStatus.CONFLICT, "You already left streaming."),
+    NO_SESSION(HttpStatus.BAD_REQUEST, "WebSocket Session Id not exists.")
     ;
 
     private final HttpStatus httpStatus;
