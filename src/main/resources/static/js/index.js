@@ -88,12 +88,12 @@ function viewerResponse(message) {
 async function presenter() {
 	// notice: test
 	var userResponse = await axios.post("/signal/room/live", { // notice: body
-		roomId: "admin@artist", // notice: 클라이언트 이메일
-		title: "welcome to my room ~", // notice: 방제 입력
-		profileUrl: "mymymymy" // notice: /feed/user API를 통해 이 url을 미리 가져와야함
+		roomId: "NewJeans", // notice: 클라이언트 이메일
+		title: "Ditto", // notice: 방제 입력
+		profileUrl: "http://object-storage.idc-sginfra.net:8080/idol/image/rabbit.jpeg" // notice: /feed/user API를 통해 이 url을 미리 가져와야함
 	}, {
 		headers: { // notice: header
-			email: "admin@artist", // notice: 클라이언트 이메일
+			email: "NewJeans", // notice: 클라이언트 이메일
 		}
 	});
 	if (userResponse.status !== 201) { // notice: 201 success
@@ -120,7 +120,7 @@ async function presenter() {
 
 async function viewer() {
 	var joinResponse = await axios.post("/signal/room/view", { // notice: body
-		roomId: "admin@artist" // notice: 시청하려고 하는 presenter의 email
+		roomId: "NewJeans" // notice: 시청하려고 하는 presenter의 email
 	}, {
 		headers: { // notice: header
 			email: "admin@fan", // notice: 클라이언트의 email
@@ -150,7 +150,7 @@ async function viewer() {
 async function stop() { // notice: 연예인이 방송 끝냄
 	var stopResponse = await axios.delete("/signal/room/live", {
 		headers: {
-			email: "admin@artist",
+			email: "NewJeans",
 		}
 	});
 	console.log(stopResponse);
@@ -174,8 +174,8 @@ function onOfferPresenter(error, offerSdp) {
 	// 이 메세지 형식으로 iOS에서 보내주도록 수정완료
 	var message = {
 		id : 'presenter',
-		email : 'admin@artist',
-		roomId: "admin@artist", // notice: 이거 하나 추가됨
+		email : 'NewJeans',
+		roomId: "NewJeans", // notice: 이거 하나 추가됨
 		sdpOffer : offerSdp
 	}
 	sendMessage(message);
@@ -189,7 +189,7 @@ function onOfferViewer(error, offerSdp) {
 	var message = {
 		id : 'viewer',
 		email: 'admin@fan',
-		roomId: "admin@artist", // notice: 이거 하나 추가됨
+		roomId: "NewJeans", // notice: 이거 하나 추가됨
 		sdpOffer : offerSdp,
 	}
 	console.info(' ------------------------------------- ');
@@ -201,7 +201,7 @@ function onIceCandidate(candidate) {
 	console.log("Local candidate" + JSON.stringify(candidate));
 	var message = { // notice: 변한거 없음
 		id : 'onIceCandidate',
-		roomId : 'admin@artist', // notice: 방송중인 아티스트의 이메일
+		roomId : 'NewJeans', // notice: 방송중인 아티스트의 이메일
 		candidate : candidate
 	};
 	sendMessage(message);

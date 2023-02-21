@@ -87,9 +87,10 @@ public class RoomController {
 
     @PostMapping("/live")
     public ResponseEntity<RoomResponseDto> createRoom(@RequestHeader("email") String email, @RequestBody @Valid RoomCreateRequestDto roomDto) throws KurentoException {
+        String roomId = roomDto.getRoomId();
 
         // 유저세션, 방 생성
-        userService.createById(email, email);
+        userService.createById(email, roomId);
         Room room = roomService.createById(roomDto);
 
         // 미디어 파이프라인, 엔드포인트 생성 (여기서 발생한 예외는 webSocket 예외로 처리)
@@ -103,10 +104,10 @@ public class RoomController {
 
         // 정보 업데이트
         userService.updateEndpointById(endpoint.getId(), email);
-        roomService.updateById(pipeline.getId(), email);
+        roomService.updateById(pipeline.getId(), roomId);
 
         // response
-        RoomResponseDto responseDto = roomService.createRoomResponseDto(email, room);
+        RoomResponseDto responseDto = roomService.createRoomResponseDto(roomId, room);
         return ResponseDto.created(responseDto);
     }
 
