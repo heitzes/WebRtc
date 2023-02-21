@@ -1,7 +1,7 @@
 package com.example.signalling2.service;
 
 import com.example.signalling2.domain.Room;
-import com.example.signalling2.dto.Request.RoomCreateRequestDto;
+import com.example.signalling2.dto.Response.VodResponseDto;
 import com.example.signalling2.exception.KurentoException;
 import com.example.signalling2.exception.ServiceException;
 import com.example.signalling2.exception.errcode.KurentoErrCode;
@@ -14,7 +14,6 @@ import org.apache.http.entity.StringEntity;
 import org.kurento.client.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -112,9 +111,10 @@ public class MediaService {
         }
     }
 
-    public RecorderEndpoint createRecorderEndpoint(MediaPipeline pipeline, final RoomCreateRequestDto roomDto) throws KurentoException {
+    public RecorderEndpoint createRecorderEndpoint(MediaPipeline pipeline, Room room) throws KurentoException {
         try {
-            final var uri = RECORDING_PATH + roomDto.getRoomId() + EXT_MP4;
+            VodResponseDto vodResponseDto = new VodResponseDto(room.getUuid(), room.getId(), room.getTitle(), room.getTitle());
+            final var uri = RECORDING_PATH + vodResponseDto.getRoomId() + EXT_MP4;
             final var recorderEp = new RecorderEndpoint.Builder(pipeline, uri).withMediaProfile(MediaProfileSpecType.MP4).build();
             final var endCount = new AtomicInteger(0);
 
@@ -130,7 +130,7 @@ public class MediaService {
                             public void onSuccess(Void result) {
                                 // make request entity (json)
                                 log.info("[{}] - Success to store media", recorderEp.getId());
-                                var json = new GsonBuilder().create().toJson(roomDto, RoomCreateRequestDto.class);
+                                var json = new GsonBuilder().create().toJson(vodResponseDto, VodResponseDto.class);
                                 var entity = new StringEntity(json, ContentType.APPLICATION_JSON);
 
                                 // send upload request to upload server (VM) & release MediaPipeline

@@ -25,12 +25,18 @@ public class SessionService {
     }
 
     public Session findSessionById(String sessionId) {
+        if (sessionId == null) {
+            throw new ServiceException(ServiceErrorCode.NO_SESSION); // api로 삭제 요청시 (세션이 없음)
+        }
         return sessionRepository.findById(sessionId).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_SESSION));
     }
 
     public void deleteSessionById(String sessionId) {
+        if (sessionId == null) {
+            throw new ServiceException(ServiceErrorCode.NO_SESSION); // api로 삭제 요청시 (세션이 없음)
+        }
         if (sessionRepository.findById(sessionId).isEmpty()) {
-            throw new ServiceException(ServiceErrorCode.NO_SESSION);
+            throw new ServiceException(ServiceErrorCode.NO_SESSION); // sessionId는 있지만 value가 없을때
         }
         sessionRepository.delete(sessionId);
     }

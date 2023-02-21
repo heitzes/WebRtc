@@ -34,6 +34,14 @@ public class UserService {
         return userRepository.findById(userId).orElseThrow(()-> new ServiceException(ServiceErrorCode.NO_USER));
     }
 
+    public String getSessionIdById(String userId) {
+        User user = findById(userId);
+        if (user.getSessionId() == null) {
+            throw new ServiceException(ServiceErrorCode.NO_SESSION);
+        }
+        return user.getSessionId();
+    }
+
     public void updateEndpointById(String endpoint, String email) {
         User user = findById(email);
         System.out.println("update endpoint: " + endpoint);

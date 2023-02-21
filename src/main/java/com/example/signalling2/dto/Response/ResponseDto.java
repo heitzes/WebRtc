@@ -21,14 +21,14 @@ public class ResponseDto<T> implements Serializable { // Serializable은 직렬�
 
     public static <T> ResponseEntity<T> created(T data) {
         return ResponseEntity
-                .status(HttpStatus.CREATED) // study: CREATED, NO_CONTENT 같은건 HttpStatus 안에 정의되어 있음
+                .status(HttpStatus.CREATED)
                 .body(data);
     }
 
     public static ResponseEntity<Void> noContent() {
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
-                .build(); // study: build()는 "Build the response entity with no body"
+                .build();
     }
 
     public static ResponseEntity<Void> conflict() {
