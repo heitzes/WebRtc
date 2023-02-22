@@ -5,9 +5,11 @@ import com.example.signalling2.exception.ServiceException;
 import com.example.signalling2.exception.errcode.ServiceErrorCode;
 import com.example.signalling2.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
@@ -18,7 +20,7 @@ public class UserService {
             throw new ServiceException(ServiceErrorCode.ALREADY_IN);
         }
         User user = new User(email, roomId);
-        System.out.println("New user: " + email);
+        log.info("New user: " + email);
         return userRepository.save(user);
     }
 
@@ -27,6 +29,7 @@ public class UserService {
         if (userRepository.findById(email).isEmpty()) {
             throw new ServiceException(ServiceErrorCode.ALREADY_OUT);
         }
+        log.info("Deleted user: " + email);
         userRepository.deleteById(email);
     }
 
@@ -44,7 +47,6 @@ public class UserService {
 
     public void updateEndpointById(String endpoint, String email) {
         User user = findById(email);
-        System.out.println("update endpoint: " + endpoint);
         user.setWebRtcEndpoint(endpoint);
         userRepository.save(user); // notice: update
     }

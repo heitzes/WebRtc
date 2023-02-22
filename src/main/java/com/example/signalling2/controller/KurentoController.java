@@ -27,7 +27,6 @@ public class KurentoController {
     public ResponseEntity<Object> getPipelines() {
        List<MediaPipeline> pipelines = kurento.getServerManager().getPipelines();
        List<PipelineResponseDto> piplineList = new ArrayList<>();
-       System.out.println("pipeline num: " + pipelines.size());
        for (MediaPipeline pipeline : pipelines) {
            PipelineResponseDto pipelineResponseDto = new PipelineResponseDto(pipeline.getId(), pipeline.getName());
            piplineList.add(pipelineResponseDto);
@@ -51,11 +50,9 @@ public class KurentoController {
     @GetMapping("/clear") // notice: 일단은 getmapping
     public ResponseEntity<Object> removePipelines() {
         List<MediaPipeline> pipelines = kurento.getServerManager().getPipelines();
-        System.out.println("pipeline num: " + pipelines.size());
         for (MediaPipeline pipeline : pipelines) {
             pipeline.release();
         }
         return ResponseDto.ok(kurento.getServerManager().getPipelines());
     }
-
 }

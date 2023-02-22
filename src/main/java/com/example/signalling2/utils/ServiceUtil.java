@@ -10,6 +10,7 @@ import com.example.signalling2.service.SessionService;
 import com.example.signalling2.service.UserService;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.kurento.client.WebRtcEndpoint;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -30,6 +31,7 @@ import java.util.Set;
  * sdp Negotiation, Ice candidate gathering 이기 때문에
  * 이 클래스로 분리했습니다.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ServiceUtil {
@@ -43,6 +45,7 @@ public class ServiceUtil {
             User user = userService.findById(email);
             return mediaService.getEndpoint(user.getWebRtcEndpoint());
         } catch (Exception e) {
+            log.error("Can't restore WebRtcEndpoint.");
             return null; // fixme
         }
     }
@@ -52,8 +55,7 @@ public class ServiceUtil {
             sessionService.createSessionById(session.getId(), session, roomId, email);
             userService.updateSessionById(session.getId(), email); // notice: 여기서 세션id 저장
         } catch (ServiceException e) {
-            System.out.println("Catch ServiceException before decorator catch!");
-            System.out.println("Can't save websocket session.");
+            log.error("Can't save websocket session.");
             // fixme: 후속 조치
         }
     }
@@ -79,7 +81,7 @@ public class ServiceUtil {
                 sessionService.deleteSessionById(sessionId);
             }
         } catch(ServiceException e) {
-            System.out.println("WebSocket Session not exists.");
+            log.error("WebSocket Session not exists.");
         }
     }
 
@@ -87,6 +89,7 @@ public class ServiceUtil {
         try {
             session.sendMessage(new TextMessage(response.toString()));
         } catch (Exception e) {
+            log.error("Can't send webSocket message.");
             // question: 웹소켓 연결이 끊어지면 이미 afterConnectionClosed 가 실행될것임
         }
     }
