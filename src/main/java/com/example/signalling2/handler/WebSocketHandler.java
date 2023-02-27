@@ -41,6 +41,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         JsonObject response = new JsonObject();
+        response.addProperty("id", "open");
         response.addProperty("session-id", session.getId());
         ServiceUtil.sendMessage(session, response);
     }
@@ -88,6 +89,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
 
     private void onIceCandidate(JsonObject candidate, String roomId) {
+        log.info("[{}] - candidate", candidate.get("candidate").getAsString());
         WebRtcEndpoint artistEndpoint = serviceUtil.getEndpoint(roomId);
         IceCandidate cand =
                 new IceCandidate(candidate.get("candidate").getAsString(), candidate.get("sdpMid")
