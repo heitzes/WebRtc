@@ -1,16 +1,13 @@
-package com.example.signalling2.dto.Request;
+package com.example.signalling2.controller.dto.Response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NonNull;
 
 @Getter
 @AllArgsConstructor
-public class RoomCreateRequestDto {
-    @NonNull
+public class RoomResponseDto {
     String roomId;
-    @NonNull
     String title;
-    @NonNull
     String profileUrl;
+    String count;
 }

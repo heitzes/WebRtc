@@ -1,6 +1,6 @@
-package com.example.signalling2.exception;
+package com.example.signalling2.common.exception;
 
-import com.example.signalling2.exception.errcode.ServiceErrorCode;
+import com.example.signalling2.common.exception.errcode.ServiceErrorCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

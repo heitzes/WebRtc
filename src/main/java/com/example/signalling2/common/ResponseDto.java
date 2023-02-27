@@ -1,4 +1,4 @@
-package com.example.signalling2.dto.Response;
+package com.example.signalling2.common;
 
 import lombok.AccessLevel;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package com.example.signalling2.dto.Request;
+package com.example.signalling2.controller.dto.Request;
 
 import lombok.Getter;
 

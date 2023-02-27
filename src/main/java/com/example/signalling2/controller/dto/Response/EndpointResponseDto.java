@@ -1,4 +1,4 @@
-package com.example.signalling2.dto.Response;
+package com.example.signalling2.controller.dto.Response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

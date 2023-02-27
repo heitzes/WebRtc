@@ -1,12 +1,8 @@
-package com.example.signalling2.config;
+package com.example.signalling2.common.config;
 
 import com.example.signalling2.handler.WebSocketHandler;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.adapter.standard.StandardWebSocketHandlerAdapter;
-import org.springframework.web.socket.adapter.standard.StandardWebSocketSession;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;

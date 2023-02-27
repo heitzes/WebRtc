@@ -1,4 +1,4 @@
-package com.example.signalling2.config;
+package com.example.signalling2.common.config;
 
 import org.kurento.client.KurentoClient;
 import org.springframework.beans.factory.annotation.Value;

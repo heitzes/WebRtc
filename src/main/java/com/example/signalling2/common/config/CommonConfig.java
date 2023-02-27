@@ -1,4 +1,4 @@
-package com.example.signalling2.config;
+package com.example.signalling2.common.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

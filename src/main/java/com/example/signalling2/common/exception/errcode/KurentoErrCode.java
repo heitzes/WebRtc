@@ -1,4 +1,4 @@
-package com.example.signalling2.exception.errcode;
+package com.example.signalling2.common.exception.errcode;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;

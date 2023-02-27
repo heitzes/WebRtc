@@ -1,15 +1,14 @@
-package com.example.signalling2.handler;
+package com.example.signalling2.common.exception;
 
-import com.example.signalling2.exception.ServiceException;
-import com.example.signalling2.exception.KurentoException;
-import com.example.signalling2.exception.errcode.ServiceErrorCode;
-import com.example.signalling2.exception.errcode.KurentoErrCode;
+import com.example.signalling2.common.exception.ServiceException;
+import com.example.signalling2.common.exception.KurentoException;
+import com.example.signalling2.common.exception.errcode.ServiceErrorCode;
+import com.example.signalling2.common.exception.errcode.KurentoErrCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-import org.springframework.web.socket.WebSocketSession;
 
 
 @Slf4j
