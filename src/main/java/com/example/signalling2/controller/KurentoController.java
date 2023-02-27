@@ -1,20 +1,17 @@
 package com.example.signalling2.controller;
 
-import com.example.signalling2.dto.Response.EndpointResponseDto;
-import com.example.signalling2.dto.Response.PipelineResponseDto;
-import com.example.signalling2.dto.Response.ResponseDto;
-import com.example.signalling2.dto.Response.RoomResponseDto;
+import com.example.signalling2.controller.dto.Response.EndpointResponseDto;
+import com.example.signalling2.controller.dto.Response.PipelineResponseDto;
+import com.example.signalling2.common.ResponseDto;
 import com.example.signalling2.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.kurento.client.KurentoClient;
 import org.kurento.client.MediaObject;
 import org.kurento.client.MediaPipeline;
-import org.kurento.client.WebRtcEndpoint;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 @RestController

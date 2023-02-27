@@ -1,8 +1,8 @@
 package com.example.signalling2.service;
 
 import com.example.signalling2.domain.User;
-import com.example.signalling2.exception.ServiceException;
-import com.example.signalling2.exception.errcode.ServiceErrorCode;
+import com.example.signalling2.common.exception.ServiceException;
+import com.example.signalling2.common.exception.errcode.ServiceErrorCode;
 import com.example.signalling2.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

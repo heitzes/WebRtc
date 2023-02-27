@@ -1,6 +1,5 @@
 package com.example.signalling2.domain;
 
-import com.example.signalling2.dto.Request.RoomCreateRequestDto;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;

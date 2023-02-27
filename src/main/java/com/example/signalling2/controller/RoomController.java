@@ -3,11 +3,11 @@ package com.example.signalling2.controller;
 import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.Session;
 import com.example.signalling2.domain.User;
-import com.example.signalling2.dto.Request.RoomCreateRequestDto;
-import com.example.signalling2.dto.Request.RoomJoinRequestDto;
-import com.example.signalling2.dto.Response.ResponseDto;
-import com.example.signalling2.dto.Response.RoomResponseDto;
-import com.example.signalling2.exception.KurentoException;
+import com.example.signalling2.controller.dto.Request.RoomCreateRequestDto;
+import com.example.signalling2.controller.dto.Request.RoomJoinRequestDto;
+import com.example.signalling2.common.ResponseDto;
+import com.example.signalling2.controller.dto.Response.RoomResponseDto;
+import com.example.signalling2.common.exception.KurentoException;
 import com.example.signalling2.service.MediaService;
 import com.example.signalling2.service.RoomService;
 import com.example.signalling2.service.SessionService;
@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 @RestController
+@CrossOrigin
 @RequestMapping("/room")
 @RequiredArgsConstructor
 public class RoomController {
@@ -54,7 +55,7 @@ public class RoomController {
         userService.createById(email, roomId);
         Room room = roomService.findById(roomId);
 
-        // 엔드포인트 생성/연결 (여기서 발생한 예외는 webSocket 예외로 처리)
+        // 엔드포인트 생성/연결 (여기서 발생한 예외는 kurento 예외로 처리)
         User artist = userService.findById(roomId);
         WebRtcEndpoint presenterEndpoint = mediaService.getEndpoint(artist.getWebRtcEndpoint());
         WebRtcEndpoint viewerEndpoint = mediaService.createEndpoint(email, room.getMediaPipeline());

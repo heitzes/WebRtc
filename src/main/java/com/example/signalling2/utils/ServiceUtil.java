@@ -1,9 +1,8 @@
 package com.example.signalling2.utils;
 
-import com.example.signalling2.domain.Room;
 import com.example.signalling2.domain.User;
 import com.example.signalling2.domain.Session;
-import com.example.signalling2.exception.ServiceException;
+import com.example.signalling2.common.exception.ServiceException;
 import com.example.signalling2.service.MediaService;
 import com.example.signalling2.service.RoomService;
 import com.example.signalling2.service.SessionService;

@@ -1,10 +1,10 @@
 package com.example.signalling2.service;
 
 import com.example.signalling2.domain.Room;
-import com.example.signalling2.dto.Response.VodResponseDto;
-import com.example.signalling2.exception.KurentoException;
-import com.example.signalling2.exception.ServiceException;
-import com.example.signalling2.exception.errcode.KurentoErrCode;
+import com.example.signalling2.controller.dto.Response.VodResponseDto;
+import com.example.signalling2.common.exception.KurentoException;
+import com.example.signalling2.common.exception.ServiceException;
+import com.example.signalling2.common.exception.errcode.KurentoErrCode;
 import com.example.signalling2.utils.HttpClientUtils;
 import com.google.gson.GsonBuilder;
 import lombok.RequiredArgsConstructor;
@@ -83,6 +83,7 @@ public class MediaService {
             return webRtcEndpoint;
         } catch (ServiceException e) {
             return null;  // fixme: 없으면 어칼건데?
+            // todo: endpoint 복구불가 로직 처리
         }
     }
 

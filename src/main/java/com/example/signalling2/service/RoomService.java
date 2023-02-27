@@ -1,10 +1,10 @@
 package com.example.signalling2.service;
 
 import com.example.signalling2.domain.Room;
-import com.example.signalling2.dto.Request.RoomCreateRequestDto;
-import com.example.signalling2.dto.Response.RoomResponseDto;
-import com.example.signalling2.exception.ServiceException;
-import com.example.signalling2.exception.errcode.ServiceErrorCode;
+import com.example.signalling2.controller.dto.Request.RoomCreateRequestDto;
+import com.example.signalling2.controller.dto.Response.RoomResponseDto;
+import com.example.signalling2.common.exception.ServiceException;
+import com.example.signalling2.common.exception.errcode.ServiceErrorCode;
 import com.example.signalling2.repository.RoomRepository;
 import com.example.signalling2.repository.ViewRepository;
 import lombok.RequiredArgsConstructor;
