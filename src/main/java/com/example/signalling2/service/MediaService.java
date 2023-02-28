@@ -47,7 +47,7 @@ public class MediaService {
         // 미디어 파이프라인, 엔드포인트 생성
         try {
             MediaPipeline mediaPipeline = kurento.createMediaPipeline();
-            mediaPipeline.setName(email + "_Pipeline");
+            mediaPipeline.setName(email);
             return mediaPipeline;
         } catch (Exception e) { // change unknown err to webSocketException
             throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);

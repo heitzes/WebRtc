@@ -48,6 +48,14 @@ public class RoomService {
         return rooms;
     }
 
+    public ArrayList<String> findAllPipelines() {
+        ArrayList<String> rooms = new ArrayList<>();
+        for(Room room : roomRepository.findAll()) {
+            rooms.add(room.getMediaPipeline());
+        }
+        return rooms;
+    }
+
     public void delete(String roomId) {
         roomRepository.deleteById(roomId);
         viewRepository.delete(roomId);

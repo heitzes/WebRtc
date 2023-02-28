@@ -6,6 +6,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class PipelineResponseDto {
-    String pipelineId;
     String pipelineName;
+    String pipelineId;
 }

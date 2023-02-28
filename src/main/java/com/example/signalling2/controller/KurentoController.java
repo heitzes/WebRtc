@@ -3,6 +3,9 @@ package com.example.signalling2.controller;
 import com.example.signalling2.controller.dto.Response.EndpointResponseDto;
 import com.example.signalling2.controller.dto.Response.PipelineResponseDto;
 import com.example.signalling2.common.ResponseDto;
+import com.example.signalling2.controller.dto.Response.RoomResponseDto;
+import com.example.signalling2.domain.Room;
+import com.example.signalling2.service.MediaService;
 import com.example.signalling2.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.kurento.client.KurentoClient;
@@ -15,24 +18,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
+@CrossOrigin
 @RequestMapping("/media")
 @RequiredArgsConstructor
 public class KurentoController {
     private final KurentoClient kurento;
     private final RoomService roomService;
+    private final MediaService mediaService;
     @GetMapping("/pipelines")
     public ResponseEntity<Object> getPipelines() {
        List<MediaPipeline> pipelines = kurento.getServerManager().getPipelines();
        List<PipelineResponseDto> piplineList = new ArrayList<>();
        for (MediaPipeline pipeline : pipelines) {
-           PipelineResponseDto pipelineResponseDto = new PipelineResponseDto(pipeline.getId(), pipeline.getName());
+           PipelineResponseDto pipelineResponseDto = new PipelineResponseDto(pipeline.getName(), pipeline.getId());
            piplineList.add(pipelineResponseDto);
        }
        return ResponseDto.ok(piplineList);
     }
 
-    @GetMapping("/pipeline/{email}")
-    public ResponseEntity<Object> getPipeline(@PathVariable("email") String email) {
+    @GetMapping("/endpoints/{email}")
+    public ResponseEntity<Object> getChildren(@PathVariable("email") String email) {
         String pipelineId = roomService.findById(email).getMediaPipeline();
         MediaPipeline pipeline = kurento.getById(pipelineId, MediaPipeline.class);
         List<MediaObject> children = pipeline.getChildren();
@@ -44,13 +49,30 @@ public class KurentoController {
         return ResponseDto.ok(endpointList);
     }
 
-    @GetMapping("/clear") // notice: 일단은 getmapping
-    public ResponseEntity<Object> removePipelines() {
+    @GetMapping("/pipelines/exception")
+    public ResponseEntity<Object> getUnusedPipelines() {
         List<MediaPipeline> pipelines = kurento.getServerManager().getPipelines();
+        ArrayList<String> roomList = roomService.findAllPipelines();
+        List<PipelineResponseDto> piplineList = new ArrayList<>();
         for (MediaPipeline pipeline : pipelines) {
-            pipeline.release();
+            if (!roomList.contains(pipeline.getId())) {
+                PipelineResponseDto pipelineResponseDto = new PipelineResponseDto(pipeline.getName(), pipeline.getId());
+                piplineList.add(pipelineResponseDto);
+            }
         }
-        return ResponseDto.ok(kurento.getServerManager().getPipelines());
+        return ResponseDto.ok(piplineList);
+    }
+
+    @DeleteMapping("/pipelines/exception")
+    public ResponseEntity removePipelines() {
+        List<MediaPipeline> pipelines = kurento.getServerManager().getPipelines();
+        ArrayList<String> roomList = roomService.findAllPipelines();
+        for (MediaPipeline pipeline : pipelines) {
+            if (!roomList.contains(pipeline.getId())) {
+                pipeline.release();
+            }
+        }
+        return ResponseDto.noContent();
     }
 
     @GetMapping("/cpu")
