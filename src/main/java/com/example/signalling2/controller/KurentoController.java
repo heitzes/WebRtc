@@ -3,9 +3,6 @@ package com.example.signalling2.controller;
 import com.example.signalling2.controller.dto.Response.EndpointResponseDto;
 import com.example.signalling2.controller.dto.Response.PipelineResponseDto;
 import com.example.signalling2.common.ResponseDto;
-import com.example.signalling2.controller.dto.Response.RoomResponseDto;
-import com.example.signalling2.domain.Room;
-import com.example.signalling2.service.MediaService;
 import com.example.signalling2.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.kurento.client.KurentoClient;
@@ -18,13 +15,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@CrossOrigin
+@CrossOrigin(origins = "https://smileverse-fe.onstove.com/")
 @RequestMapping("/media")
 @RequiredArgsConstructor
 public class KurentoController {
     private final KurentoClient kurento;
     private final RoomService roomService;
-    private final MediaService mediaService;
     @GetMapping("/pipelines")
     public ResponseEntity<Object> getPipelines() {
        List<MediaPipeline> pipelines = kurento.getServerManager().getPipelines();
