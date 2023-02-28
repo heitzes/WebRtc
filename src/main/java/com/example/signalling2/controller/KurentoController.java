@@ -52,4 +52,16 @@ public class KurentoController {
         }
         return ResponseDto.ok(kurento.getServerManager().getPipelines());
     }
+
+    @GetMapping("/cpu")
+    public ResponseEntity<Object> cpuUsage() {
+        Float cpuPercent = kurento.getServerManager().getUsedCpu(1000);
+        return ResponseDto.ok(cpuPercent);
+    }
+
+    @GetMapping("/memory")
+    public ResponseEntity<Object> memUsage() {
+        Long mem = kurento.getServerManager().getUsedMemory();
+        return ResponseDto.ok(mem);
+    }
 }

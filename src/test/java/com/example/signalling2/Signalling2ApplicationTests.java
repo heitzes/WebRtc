@@ -20,6 +20,8 @@ class Signalling2ApplicationTests {
     @Test
     void contextLoads() throws IOException {
         ServerManager serverManager = kurentoClient.getServerManager();
+        Float cpu = serverManager.getUsedCpu(10000);
+        System.out.println(cpu);
 //        // notice: pipeline 생성
 //        Request<JsonObject> request = KurentoUtil.pipelineRequest();
 //        Response<JsonElement> response = kurentoClient.sendJsonRpcRequest(request);
@@ -120,10 +122,10 @@ class Signalling2ApplicationTests {
 
 //        Response response = kurentoClient.sendJsonRpcRequest(request);
 //        System.out.println(response);
-        System.out.println(serverManager.getPipelines());
-        List<String> sessions = serverManager.getSessions();
-        System.out.println(serverManager.getSessions());
-        System.out.println(sessions.size());
+//        System.out.println(serverManager.getPipelines());
+//        List<String> sessions = serverManager.getSessions();
+//        System.out.println(serverManager.getSessions());
+//        System.out.println(sessions.size());
     }
 
 }
