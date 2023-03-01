@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 @RestController
-@CrossOrigin
+@CrossOrigin(methods = {RequestMethod.DELETE, RequestMethod.GET, RequestMethod.POST}, origins = "*")
 @RequestMapping("/room")
 @RequiredArgsConstructor
 public class RoomController {
