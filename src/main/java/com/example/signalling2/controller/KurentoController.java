@@ -3,6 +3,7 @@ package com.example.signalling2.controller;
 import com.example.signalling2.controller.dto.Response.EndpointResponseDto;
 import com.example.signalling2.controller.dto.Response.PipelineResponseDto;
 import com.example.signalling2.common.ResponseDto;
+import com.example.signalling2.service.MediaService;
 import com.example.signalling2.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.kurento.client.KurentoClient;
@@ -11,6 +12,7 @@ import org.kurento.client.MediaPipeline;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.print.attribute.standard.Media;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +22,7 @@ import java.util.List;
 public class KurentoController {
     private final KurentoClient kurento;
     private final RoomService roomService;
+    private final MediaService mediaService;
     @GetMapping("/pipelines")
     public ResponseEntity<Object> getPipelines() {
        List<MediaPipeline> pipelines = kurento.getServerManager().getPipelines();
@@ -72,13 +75,13 @@ public class KurentoController {
 
     @GetMapping("/cpu")
     public ResponseEntity<Object> cpuUsage() {
-        Float cpuPercent = kurento.getServerManager().getUsedCpu(1000);
+        String cpuPercent = mediaService.cpuUsage() + "%";
         return ResponseDto.ok(cpuPercent);
     }
 
     @GetMapping("/memory")
     public ResponseEntity<Object> memUsage() {
-        Long mem = kurento.getServerManager().getUsedMemory();
-        return ResponseDto.ok(mem);
+        String memPercent = mediaService.memUsage() + "%";
+        return ResponseDto.ok(memPercent);
     }
 }

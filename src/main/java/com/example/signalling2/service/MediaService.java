@@ -1,5 +1,6 @@
 package com.example.signalling2.service;
 
+import com.example.signalling2.controller.dto.Response.MessageDto;
 import com.example.signalling2.domain.Room;
 import com.example.signalling2.controller.dto.Response.VodResponseDto;
 import com.example.signalling2.common.exception.KurentoException;
@@ -43,6 +44,22 @@ public class MediaService {
     @Value("${upload.server.url}")
     private String uploadServerUrl;
 
+    @Value("${smileHub.url}")
+    private String smileHubUrl;
+
+    public String cpuUsage() {
+        Float cpu = kurento.getServerManager().getUsedCpu(1000);
+        String percent = String.format("%.2f", cpu);
+        return percent;
+    }
+
+    public String memUsage() {
+        Float mem = (float) kurento.getServerManager().getUsedMemory();
+        mem = (float) (((mem / 1024) / 1024) * 7.87);
+        String percent = String.format("%.2f", mem);
+        return percent;
+    }
+
     public MediaPipeline createPipeline(String email) throws KurentoException {
         // 미디어 파이프라인, 엔드포인트 생성
         try {
@@ -51,6 +68,16 @@ public class MediaService {
             return mediaPipeline;
         } catch (Exception e) { // change unknown err to webSocketException
             throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
+        } finally {
+            String cpu = cpuUsage();
+            String mem = memUsage();
+            if (Float.parseFloat(cpu) > 0 | Float.parseFloat(mem) > 0) {
+                String text = String.format("**WARNING** CPU USAGE: %s MEMORY USAGE: %s", cpu + "%", mem + "%");
+                MessageDto messageDto = new MessageDto(text);
+                var json = new GsonBuilder().create().toJson(messageDto, MessageDto.class);
+                var entity = new StringEntity(json, ContentType.APPLICATION_JSON);
+                HttpClientUtils.sendPostRequest(smileHubUrl, entity);
+            }
         }
     }
 

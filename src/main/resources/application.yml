@@ -11,6 +11,9 @@ spring:
     ansi:
       enabled: always
 
+smileHub:
+  url: https://schat.smilegate.net/hooks/2jEMagaTFMuP8AWRm/DisALbueqQuoQjb3t4TBCpWBBgp7nQDYxsHHkdiDqrRyXiQd
+
 logging:
   level:
     org:
