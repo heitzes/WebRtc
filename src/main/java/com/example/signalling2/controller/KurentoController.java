@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "https://smileverse-fe.onstove.com/")
+@CrossOrigin
 @RequestMapping("/media")
 @RequiredArgsConstructor
 public class KurentoController {
@@ -59,7 +59,7 @@ public class KurentoController {
         return ResponseDto.ok(piplineList);
     }
 
-    @DeleteMapping("/pipelines/exception")
+    @PostMapping("/pipelines/exception")
     public ResponseEntity removePipelines() {
         List<MediaPipeline> pipelines = kurento.getServerManager().getPipelines();
         ArrayList<String> roomList = roomService.findAllPipelines();

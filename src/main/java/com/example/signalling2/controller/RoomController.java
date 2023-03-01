@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 @RestController
-@CrossOrigin(origins = "https://smileverse-fe.onstove.com/")
+@CrossOrigin
 @RequestMapping("/room")
 @RequiredArgsConstructor
 public class RoomController {
