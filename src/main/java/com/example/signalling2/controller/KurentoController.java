@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@CrossOrigin(methods = {RequestMethod.DELETE, RequestMethod.GET, RequestMethod.POST}, origins = "*")
 @RequestMapping("/media")
 @RequiredArgsConstructor
 public class KurentoController {
