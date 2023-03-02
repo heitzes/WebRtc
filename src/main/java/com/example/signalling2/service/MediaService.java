@@ -19,17 +19,13 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * to handle exceptions related to kms
- * <p>
- * mediaPipeline, webRtcEndpoint를 같은 kurento Client Session을 사용하여 생성하기 위해
- * Json-RPC Request로 요청을 보냅니다.
- * <p>
- * connect, release 등 mediaPipeline/WebRtcEndpoint 클래스의 메서드를 실행할 때
- * 객체의 id(String)를 매개변수로하여 Json-RPC API를 통해 실행합니다.
- * 즉, 시그널 서버에서 더이상 미디어 서버 관련 객체를 저장하고 있을 필요가 없습니다.
- * <p>
- * 미디어 객체 복구가 필요한 경우 (ex. WebRtcEndpoint에 IceCandidateFound Event Listener 추가해야하는 경우 등)
- * WebSocketUtil 클래스에 있는 메서드를 사용하여 객체를 복구할 수 있습니다.
+ * 미디어 서버 관련 객체(media pipeline, webRtcEndpoint, recordEndpoint 등)의
+ * 생성/복구/연결/메모리해제 관련 로직을 담당하는 클래스 입니다.
+ *
+ * HttpClient를 사용하여 녹화한 영상을 업로드 서버에 저장하거나,
+ * 미디어 서버의 cpu/memory 사용량을 확인하여 사내 메신저로 메세지를 보내는
+ * 부가기능도 수행합니다.
+ *
  */
 @Slf4j
 @Service
@@ -65,21 +61,27 @@ public class MediaService {
         try {
             MediaPipeline mediaPipeline = kurento.createMediaPipeline();
             mediaPipeline.setName(email);
-            return mediaPipeline;
-        } catch (Exception e) { // change unknown err to webSocketException
-            throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
-        } finally {
             String cpu = cpuUsage();
             String mem = memUsage();
             if (Float.parseFloat(cpu) > 0 | Float.parseFloat(mem) > 0) {
                 String text = String.format("**WARNING** CPU USAGE: %s MEMORY USAGE: %s", cpu + "%", mem + "%");
-                MessageDto messageDto = new MessageDto(text);
-                var json = new GsonBuilder().create().toJson(messageDto, MessageDto.class);
-                var entity = new StringEntity(json, ContentType.APPLICATION_JSON);
-                HttpClientUtils.sendPostRequest(smileHubUrl, entity);
+                sendToSmileHub(text);
             }
+            return mediaPipeline;
+        } catch (Exception e) { // change unknown err to webSocketException
+            String text = String.format("**ERROR** " + KurentoErrCode.KMS_NO_PIPELINE.getMessage());
+            sendToSmileHub(text);
+            throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
         }
     }
+
+    public void sendToSmileHub(String text) {
+        MessageDto messageDto = new MessageDto(text);
+        var json = new GsonBuilder().create().toJson(messageDto, MessageDto.class);
+        var entity = new StringEntity(json, ContentType.APPLICATION_JSON);
+        HttpClientUtils.sendPostRequest(smileHubUrl, entity);
+    }
+
 
     public WebRtcEndpoint createEndpoint(String email, String pipelineId) throws KurentoException {
         try {
@@ -94,23 +96,25 @@ public class MediaService {
             webRtcEndpoint.setName(email + "_WebEndpoint");
             return webRtcEndpoint;
         } catch (Exception e) {
+            String text = String.format("**ERROR** " + KurentoErrCode.KMS_NO_ENDPOINT.getMessage());
+            sendToSmileHub(text);
             throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);
         }
     }
 
     /**
      * WebRtcEndpoint 객체 복원
+     * 만약 복원 못하면 새로 만듬
      *
      * @param endpoint
      * @return WebRtcEndpoint
      */
     public WebRtcEndpoint getEndpoint(String endpoint) {
         try {
-            WebRtcEndpoint webRtcEndpoint = kurento.getById(endpoint, WebRtcEndpoint.class);
-            return webRtcEndpoint;
-        } catch (ServiceException e) {
-            return null;  // fixme: 없으면 어칼건데?
-            // todo: endpoint 복구불가 로직 처리
+            return kurento.getById(endpoint, WebRtcEndpoint.class);
+        } catch (Exception e) { // fixme: 없으면 어칼건데?
+            log.error("Can't restore WebRtcEndpoint.");
+            throw new KurentoException(KurentoErrCode.KMS_RESTORE_ENDPOINT);
         }
     }
 
@@ -134,8 +138,8 @@ public class MediaService {
         try {
             MediaPipeline mediaPipeline = kurento.getById(pipeline, MediaPipeline.class);
             return mediaPipeline;
-        } catch (Exception e) {
-            return null; // fixme: 없으면 어쩔꺼?
+        } catch (Exception e) { // fixme: 없으면 어쩔꺼?
+            throw new KurentoException(KurentoErrCode.KMS_RESTORE_PIPELINE);
         }
     }
 
@@ -184,7 +188,7 @@ public class MediaService {
 
     public void releaseEndpoint(String endpoint) {
         try {
-            WebRtcEndpoint webRtcEndpoint = getEndpoint(endpoint);
+            WebRtcEndpoint webRtcEndpoint = kurento.getById(endpoint, WebRtcEndpoint.class);
             webRtcEndpoint.release();
         } catch (Exception e) {
             throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);

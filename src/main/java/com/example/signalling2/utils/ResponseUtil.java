@@ -44,7 +44,14 @@ public class ResponseUtil {
             }
         } else {
             response.addProperty("id", "stopCommunication");
-            response.addProperty("message", "Presenter stopped streaming.");
+            switch (status) {
+                case "exit":
+                    response.addProperty("message", "Presenter stopped streaming.");
+                    break;
+                case "error":
+                    response.addProperty("message", "Internal Server Error.");
+                    break;
+            }
         }
         return response;
     }

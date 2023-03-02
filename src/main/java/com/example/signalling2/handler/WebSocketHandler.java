@@ -60,7 +60,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 break;
             case "onIceCandidate": {
                 JsonObject candidate = jsonMessage.get("candidate").getAsJsonObject();
-                onIceCandidate(candidate, roomId);
+                onIceCandidate(session, candidate, roomId);
                 break;
             }
             default:
@@ -70,30 +70,60 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) {
-        log.info("[{}] - 의도치 않게 웹소켓 연결이 끊어진 경우", session.getId());
-        serviceUtil.deleteSession(session.getId());
+        if (serviceUtil.sessionExist(session.getId())) {
+            log.info("[{}] - 의도치 않게 웹소켓 연결이 끊어진 경우", session.getId());
+            serviceUtil.deleteSession(session);
+        }
     }
+
+    /**
+     * Endpoint 복구가 안되는 경우
+     *
+     * @param session
+     * @param closeStatus
+     */
+    public void closeConnection(WebSocketSession session, CloseStatus closeStatus) {
+        int code = closeStatus.getCode();
+        switch(code) {
+            case 4001:
+                log.error("[{}] - Client Endpoint 복구/생성이 불가한 경우", session.getId());
+                serviceUtil.deleteSession(session);
+                break;
+            case 4002:
+                log.error("[{}] - Artist Endpoint 복구/생성이 불가한 경우", session.getId());
+                serviceUtil.findAndDeleteArtistSession(session);
+                break;
+        }
+    }
+
 
     private void sdpICE(final WebSocketSession session, String sdpOffer, String roomId, String email, String type) {
         log.info("[{}] - sdpICE", session.getId());
         serviceUtil.saveSession(session, roomId, email); // notice: webSocket 저장
         WebRtcEndpoint webRtcEndpoint = serviceUtil.getEndpoint(email); // notice: 복원
-        webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
-        String sdpAnswer = webRtcEndpoint.processOffer(sdpOffer);
-
-        JsonObject response = ResponseUtil.sdpResponse(type, sdpAnswer);
-        synchronized (session) {
-            serviceUtil.sendMessage(session, response);
+        if (webRtcEndpoint == null){ // notice: 복구 불가능하다면 웹소켓 세션 끊고 방/유저 삭제
+            closeConnection(session, new CloseStatus(4001));
+        } else {
+            webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
+            String sdpAnswer = webRtcEndpoint.processOffer(sdpOffer);
+            JsonObject response = ResponseUtil.sdpResponse(type, sdpAnswer);
+            synchronized (session) {
+                serviceUtil.sendMessage(session, response);
+            }
+            webRtcEndpoint.gatherCandidates();
         }
-        webRtcEndpoint.gatherCandidates();
     }
 
-    private void onIceCandidate(JsonObject candidate, String roomId) {
+    private void onIceCandidate(WebSocketSession session, JsonObject candidate, String roomId) {
         log.info("[{}] - candidate", candidate.get("candidate").getAsString());
         WebRtcEndpoint artistEndpoint = serviceUtil.getEndpoint(roomId);
-        IceCandidate cand =
-                new IceCandidate(candidate.get("candidate").getAsString(), candidate.get("sdpMid")
-                        .getAsString(), candidate.get("sdpMLineIndex").getAsInt());
-        artistEndpoint.addIceCandidate(cand);
+        if (artistEndpoint == null){ // notice: 복구 불가능하다면 웹소켓 세션 끊고 방/유저 삭제
+            closeConnection(session, new CloseStatus(4002));
+        } else {
+            IceCandidate cand =
+                    new IceCandidate(candidate.get("candidate").getAsString(), candidate.get("sdpMid")
+                            .getAsString(), candidate.get("sdpMLineIndex").getAsInt());
+            artistEndpoint.addIceCandidate(cand);
+        }
     }
 }

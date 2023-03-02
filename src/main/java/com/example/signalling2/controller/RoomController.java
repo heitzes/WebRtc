@@ -129,7 +129,7 @@ public class RoomController {
         for (String viewerId : viewers) { // notice: viewerId는 이메일
             String viewerSessionId = userService.getSessionIdById(viewerId); // check null
             Session viewerSession = sessionService.findSessionById(viewerSessionId);
-            JsonObject response = ResponseUtil.messageResponse("stop", "");
+            JsonObject response = ResponseUtil.messageResponse("stop", "exit");
             util.sendMessage(viewerSession.getSession(), response);
             userService.leaveRoom(viewerId);
             sessionService.deleteSessionById(viewerSessionId);
