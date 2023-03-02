@@ -117,7 +117,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     private void onIceCandidate(WebSocketSession session, JsonObject candidate, String roomId) {
         log.info("[{}] - candidate", candidate.get("candidate").getAsString());
         WebRtcEndpoint artistEndpoint = serviceUtil.getEndpoint(roomId);
-        if (artistEndpoint == null){ // notice: 복구 불가능하다면 웹소켓 세션 끊고 방/유저 삭제
+        if (artistEndpoint == null){
             closeConnection(session, new CloseStatus(4002));
         } else {
             IceCandidate cand =
