@@ -81,6 +81,7 @@ public class ServiceUtil {
             }
         } catch(ServiceException e) {
             log.error("WebSocket Session not exists.");
+            log.error(String.valueOf(e));
         }
     }
 
