@@ -48,10 +48,10 @@ public class ServiceUtil {
             User user = userService.findById(email);
             return mediaService.getEndpoint(user.getWebRtcEndpoint());
         } catch (ServiceException e1) {
-            log.error("Can't find user: " + email);
+            log.error("[ERROR] " + e1.getServiceErrorCode().getMessage());
             return null;
         } catch (KurentoException e2) {
-            log.error("Can't restore WebRtcEndpoint. Create new WebRtcEndpoint");
+            log.error("[ERROR] " + e2.getKurentoErrCode().getMessage());
             return replaceEndpoint(email);
         }
     }
@@ -76,11 +76,10 @@ public class ServiceUtil {
             user.setWebRtcEndpoint(endpoint.getId());
             return endpoint;
         } catch (ServiceException e1) {
-            User user = userService.findById(email);
-            log.error("Can't find room: " + user.getRoomId());
+            log.error("[ERROR] " + e1.getServiceErrorCode().getMessage());
             return null;
         } catch (KurentoException e2) {
-            log.error("Can't restore Pipeline.");
+            log.error("[ERROR] " + e2.getKurentoErrCode().getMessage());
             mediaService.sendToSmileHub("**ERROR** " + e2.getKurentoErrCode().getMessage());
             return null;
         }
@@ -91,8 +90,7 @@ public class ServiceUtil {
             sessionService.createSessionById(session.getId(), session, roomId, email);
             userService.updateSessionById(session.getId(), email); // notice: 여기서 세션id 저장
         } catch (Exception e) {
-            log.error("Can't save websocket session.");
-            log.error("Exception Message: " + e.getMessage());
+            log.error("[ERROR] " + e.getMessage());
         }
     }
 
@@ -101,8 +99,7 @@ public class ServiceUtil {
             sessionService.findSessionById(sessionId);
             return true;
         } catch (ServiceException e) {
-            log.error("WebSocket Session not exists.");
-            log.error(String.valueOf(e.getMessage()));
+            log.error("[ERROR] " + e.getServiceErrorCode().getMessage());
             return false;
         }
     }
@@ -116,8 +113,7 @@ public class ServiceUtil {
             WebSocketSession artistSession = sessionService.findSessionById(artistSessionId).getSession();
             deleteSession(artistSession);
         } catch (ServiceException e) {
-            log.error("Service ErrCode: " + e.getServiceErrorCode().name());
-            log.error("Service ErrMessage: " + e.getServiceErrorCode().getMessage());
+            log.error("[ERROR] " + e.getServiceErrorCode().getMessage());
         }
     }
 
@@ -134,8 +130,7 @@ public class ServiceUtil {
                 deleteViewerSession(email, roomId, sessionId);
             }
         } catch(ServiceException e) {
-            log.error("Service ErrCode: " + e.getServiceErrorCode().name());
-            log.error("Service ErrMessage: " + e.getServiceErrorCode().getMessage());
+            log.error("[ERROR] " + e.getServiceErrorCode().getMessage());
         } finally {
             if (session.isOpen()) {
                 synchronized (session) {
@@ -157,8 +152,7 @@ public class ServiceUtil {
             sessionService.deleteSessionById(sessionId);
             roomService.delete(email);
         } catch (ServiceException e) {
-            log.error("Service ErrCode: " + e.getServiceErrorCode().name());
-            log.error("Service ErrMessage: " + e.getServiceErrorCode().getMessage());
+            log.error("[ERROR] " + e.getServiceErrorCode().getMessage());
         }
     }
 
@@ -168,8 +162,7 @@ public class ServiceUtil {
             userService.leaveRoom(email);
             sessionService.deleteSessionById(sessionId);
         } catch (ServiceException e) {
-            log.error("Service ErrCode: " + e.getServiceErrorCode().name());
-            log.error("Service ErrMessage: " + e.getServiceErrorCode().getMessage());
+            log.error("[ERROR] " + e.getServiceErrorCode().getMessage());
         }
     }
 
@@ -177,8 +170,7 @@ public class ServiceUtil {
         try {
             session.sendMessage(new TextMessage(response.toString()));
         } catch (Exception e) {
-            log.error("Can't send webSocket message.");
-            // question: 웹소켓 연결이 끊어지면 이미 afterConnectionClosed 가 실행될것임
+            log.error("[ERROR] " + e.getMessage());
         }
     }
 }
