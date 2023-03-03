@@ -2,7 +2,7 @@ package com.example.signalling2.controller;
 
 import com.example.signalling2.controller.dto.Response.EndpointResponseDto;
 import com.example.signalling2.controller.dto.Response.PipelineResponseDto;
-import com.example.signalling2.common.ResponseDto;
+import com.example.signalling2.common.Response;
 import com.example.signalling2.service.MediaService;
 import com.example.signalling2.service.RoomService;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class KurentoController {
            PipelineResponseDto pipelineResponseDto = new PipelineResponseDto(pipeline.getName(), pipeline.getId());
            piplineList.add(pipelineResponseDto);
        }
-       return ResponseDto.ok(piplineList);
+       return Response.ok(piplineList);
     }
 
     @GetMapping("/endpoints/{email}")
@@ -43,7 +43,7 @@ public class KurentoController {
             EndpointResponseDto endpointResponseDto = new EndpointResponseDto(endpoint.getId(), endpoint.getName());
             endpointList.add(endpointResponseDto);
         }
-        return ResponseDto.ok(endpointList);
+        return Response.ok(endpointList);
     }
 
     @GetMapping("/pipelines/exception")
@@ -57,7 +57,7 @@ public class KurentoController {
                 piplineList.add(pipelineResponseDto);
             }
         }
-        return ResponseDto.ok(piplineList);
+        return Response.ok(piplineList);
     }
 
     @DeleteMapping("/pipelines/exception")
@@ -69,18 +69,18 @@ public class KurentoController {
                 pipeline.release();
             }
         }
-        return ResponseDto.noContent();
+        return Response.noContent();
     }
 
     @GetMapping("/cpu")
     public ResponseEntity<Object> cpuUsage() {
         String cpuPercent = mediaService.cpuUsage() + "%";
-        return ResponseDto.ok(cpuPercent);
+        return Response.ok(cpuPercent);
     }
 
     @GetMapping("/memory")
     public ResponseEntity<Object> memUsage() {
         String memPercent = mediaService.memUsage() + "%";
-        return ResponseDto.ok(memPercent);
+        return Response.ok(memPercent);
     }
 }

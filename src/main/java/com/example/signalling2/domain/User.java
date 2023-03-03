@@ -15,5 +15,6 @@ public class User {
     @NonNull
     private String roomId;
     private String sessionId;
+    @NonNull
     private String webRtcEndpoint;
 }
