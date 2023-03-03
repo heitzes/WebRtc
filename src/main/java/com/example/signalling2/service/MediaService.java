@@ -1,5 +1,6 @@
 package com.example.signalling2.service;
 
+import com.example.signalling2.common.Constant;
 import com.example.signalling2.controller.dto.Response.MessageDto;
 import com.example.signalling2.domain.Room;
 import com.example.signalling2.controller.dto.Response.VodResponseDto;
@@ -85,7 +86,7 @@ public class MediaService {
 
     public WebRtcEndpoint createEndpoint(String email, String pipelineId) throws KurentoException {
         try {
-            final int bandWidth = 1000;
+            final int bandWidth = Constant.BAND_WIDTH;
             MediaPipeline pipeline = getPipeline(pipelineId);
             WebRtcEndpoint webRtcEndpoint = new WebRtcEndpoint.Builder(pipeline).build();
             webRtcEndpoint.setMinVideoSendBandwidth(bandWidth);
@@ -112,8 +113,7 @@ public class MediaService {
     public WebRtcEndpoint getEndpoint(String endpoint) {
         try {
             return kurento.getById(endpoint, WebRtcEndpoint.class);
-        } catch (Exception e) { // fixme: 없으면 어칼건데?
-            log.error("Can't restore WebRtcEndpoint.");
+        } catch (Exception e) {
             throw new KurentoException(KurentoErrCode.KMS_RESTORE_ENDPOINT);
         }
     }
@@ -121,11 +121,9 @@ public class MediaService {
     public RecorderEndpoint getRecorderEndpoint(String endpoint) {
         try {
             return kurento.getById(endpoint, RecorderEndpoint.class);
-        } catch (ServiceException e) {
-            log.error(e.getMessage());
+        } catch (Exception e) {
+            throw new KurentoException(KurentoErrCode.KMS_RESTORE_ENDPOINT);
         }
-
-        return null;
     }
 
     /**
@@ -138,7 +136,7 @@ public class MediaService {
         try {
             MediaPipeline mediaPipeline = kurento.getById(pipeline, MediaPipeline.class);
             return mediaPipeline;
-        } catch (Exception e) { // fixme: 없으면 어쩔꺼?
+        } catch (Exception e) {
             throw new KurentoException(KurentoErrCode.KMS_RESTORE_PIPELINE);
         }
     }
@@ -191,7 +189,7 @@ public class MediaService {
             WebRtcEndpoint webRtcEndpoint = kurento.getById(endpoint, WebRtcEndpoint.class);
             webRtcEndpoint.release();
         } catch (Exception e) {
-            throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);
+            throw new KurentoException(KurentoErrCode.KMS_RELEASE_ENDPOINT);
         }
     }
 
@@ -200,7 +198,7 @@ public class MediaService {
             RecorderEndpoint recorderEndpoint = getRecorderEndpoint(recorderEndpointId);
             recorderEndpoint.release();
         } catch (Exception e) {
-            throw new KurentoException(KurentoErrCode.KMS_NO_ENDPOINT);
+            throw new KurentoException(KurentoErrCode.KMS_RELEASE_ENDPOINT);
         }
     }
 
@@ -208,7 +206,7 @@ public class MediaService {
         try {
             pipeline.release();
         } catch (Exception e) {
-            throw new KurentoException(KurentoErrCode.KMS_NO_PIPELINE);
+            throw new KurentoException(KurentoErrCode.KMS_RELEASE_PIPELINE);
         }
     }
 
