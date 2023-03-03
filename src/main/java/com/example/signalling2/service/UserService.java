@@ -15,11 +15,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final MediaService mediaService;
 
-    public User createById(String email, String roomId) {
-        if (userRepository.findById(email).isPresent()){
+    public User createById(String email, String roomId, String endpoint) {
+        if (userRepository.findById(email).isPresent()) {
             throw new ServiceException(ServiceErrorCode.ALREADY_IN);
         }
-        User user = new User(email, roomId);
+        User user = new User(email, roomId, endpoint);
         log.info("New user: " + email);
         return userRepository.save(user);
     }
@@ -43,12 +43,6 @@ public class UserService {
             throw new ServiceException(ServiceErrorCode.NO_SESSION);
         }
         return user.getSessionId();
-    }
-
-    public void updateEndpointById(String endpoint, String email) {
-        User user = findById(email);
-        user.setWebRtcEndpoint(endpoint);
-        userRepository.save(user); // notice: update
     }
 
     public User updateSessionById(String sessionId, String email) {
