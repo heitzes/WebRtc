@@ -17,6 +17,7 @@
 
 package com.example.signalling2.handler;
 
+import com.example.signalling2.common.Constant;
 import com.example.signalling2.utils.ResponseUtil;
 import com.example.signalling2.utils.ServiceUtil;
 import com.google.gson.Gson;
@@ -85,11 +86,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
     public void closeConnection(WebSocketSession session, CloseStatus closeStatus) {
         int code = closeStatus.getCode();
         switch(code) {
-            case 4001:
+            case Constant.CLIENT:
                 log.error("[{}] - Client Endpoint 복구/생성이 불가한 경우", session.getId());
                 serviceUtil.deleteSession(session);
                 break;
-            case 4002:
+            case Constant.ARTIST:
                 log.error("[{}] - Artist Endpoint 복구/생성이 불가한 경우", session.getId());
                 serviceUtil.findAndDeleteArtistSession(session);
                 break;
@@ -102,7 +103,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         serviceUtil.saveSession(session, roomId, email); // notice: webSocket 저장
         WebRtcEndpoint webRtcEndpoint = serviceUtil.getEndpoint(email); // notice: 복원
         if (webRtcEndpoint == null){ // notice: 복구 불가능하다면 웹소켓 세션 끊고 방/유저 삭제
-            closeConnection(session, new CloseStatus(4001));
+            closeConnection(session, new CloseStatus(Constant.CLIENT));
         } else {
             webRtcEndpoint.addIceCandidateFoundListener(new IceEventHandler(session));
             String sdpAnswer = webRtcEndpoint.processOffer(sdpOffer);
@@ -118,7 +119,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         log.info("[{}] - candidate", candidate.get("candidate").getAsString());
         WebRtcEndpoint artistEndpoint = serviceUtil.getEndpoint(roomId);
         if (artistEndpoint == null){
-            closeConnection(session, new CloseStatus(4002));
+            closeConnection(session, new CloseStatus(Constant.ARTIST));
         } else {
             IceCandidate cand =
                     new IceCandidate(candidate.get("candidate").getAsString(), candidate.get("sdpMid")
