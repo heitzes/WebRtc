@@ -21,7 +21,7 @@
 
 # [2] 아키텍처
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/dd5c759b-9228-4d6b-903d-42d94683a263/Untitled.png)
+![archi](https://user-images.githubusercontent.com/66466798/236638329-b2b397ae-97ae-43ce-9ea9-b6dfe051704b.png)
 
 ---
 
@@ -53,7 +53,8 @@
     - 미디어 서버를 추가함으로써 P2P 구조를 기본으로 하는 WebRTC 기술을 서버-클라이언트 구조인 SFU 구조로 사용할 수 있습니다.
         - N:M 상황이 아닌 1:N 상황에서의 스트리밍을 위해서 P2P가 아닌 SFU 구조를 택했습니다.
         
-        ![스크린샷 2023-04-07 오후 3.37.01.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/443d8def-56ff-4f36-a411-8ae37b35fd86/%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA_2023-04-07_%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE_3.37.01.png)
+        
+<img width="601" alt="p2p" src="https://user-images.githubusercontent.com/66466798/236638365-38e087f1-4c61-4a61-9cc4-d1f5068a5c9a.png">
         
 
 # [3] 소스 코드
@@ -187,8 +188,7 @@ public ResponseEntity removePipelines() {
 
 ### 1. 기술 선정 이유
 
-![스크린샷 2023-04-07 오후 4.40.36.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/bc57ebeb-2136-4284-8124-996488b28dfb/%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA_2023-04-07_%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE_4.40.36.png)
-
+<img width="618" alt="live" src="https://user-images.githubusercontent.com/66466798/236638372-cf8dbb7f-a016-434c-aebc-a4004de71469.png">
 ---
 
 **1) 실시간 스트리밍 기술 조사**
