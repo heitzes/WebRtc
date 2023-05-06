@@ -217,14 +217,12 @@ public ResponseEntity removePipelines() {
     
     MediaPipeline과 WebRtcEndpoint는 KurentoObject 인터페이스를 확장한 인터페이스로, 메모리에서 미디어 객체의 자원을 회수하기 위해 release 메서드를 사용했습니다.
     
-    ![스크린샷 2023-04-08 오후 2.08.19.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/57194bca-5b69-400a-ae61-ca108dee6bf1/%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA_2023-04-08_%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE_2.08.19.png)
     
     [https://doc-kurento.readthedocs.io/en/stable/_static/client-javadoc/org/kurento/client/KurentoObject.html#release()](https://doc-kurento.readthedocs.io/en/stable/_static/client-javadoc/org/kurento/client/KurentoObject.html#release())
     
 - connect 메서드
     
     WebRtcEndpoint는 MediaElement 인터페이스를 확장한 인터페이스로, 송출자의 WebRtcEndpoint가 수신하는 미디어 스트림을 시청자의 WebRtcEndpoint에 넘겨주도록 두 WebRtcEndpoint를 연결하는 connect 메서드를 사용했습니다.
-    
-    ![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/898b1108-3154-4e11-b71c-e927eaae17ea/Untitled.png)
+   
     
     [https://doc-kurento.readthedocs.io/en/latest/_static/client-javadoc/org/kurento/client/MediaElement.html#connect(org.kurento.client.MediaElement)](https://doc-kurento.readthedocs.io/en/latest/_static/client-javadoc/org/kurento/client/MediaElement.html#connect(org.kurento.client.MediaElement))
